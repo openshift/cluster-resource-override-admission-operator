@@ -1,0 +1,15 @@
+FROM golang:1.12
+
+WORKDIR /go/src/github.com/openshift/cluster-resource-override-admission-operator
+
+COPY Makefile Makefile
+
+COPY pkg pkg
+COPY vendor vendor
+COPY boilerplate.go.txt boilerplate.go.txt
+
+# To avoid running into the following issue.
+# /bin/sh: 1: ./vendor/k8s.io/code-generator/generate-internal-groups.sh: Permission denied
+RUN chmod a+x vendor/k8s.io/code-generator/generate-internal-groups.sh
+
+RUN make codegen-internal
