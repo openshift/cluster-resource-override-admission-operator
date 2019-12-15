@@ -7,9 +7,14 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// Interface is the interface that defines an operator.
+// Interface defines an interface for the operator.
 type Interface interface {
-	// Run will start the operator instance given a config.
+	// Run will start a new operator instance based on the given config
+	// Run starts the operator instance and waits indefinitely until the parent
+	// shutdown context is done.
+	// Run returns on any error encountered during initialization.
+	// Any error encountered during initialization is written to the errorCh channel
+	// specified so that the caller can take appropriate action.
 	Run(config *Config, errorCh chan<- error)
 
 	// Done returns a channel that's closed when the operator is done.
@@ -30,10 +35,10 @@ type Config struct {
 	// RestConfig is the rest.Config object to be used to build clients.
 	RestConfig *rest.Config
 
-	// OperandImage points to operand image.
+	// OperandImage points to the operand image.
 	OperandImage string
 
-	// OperandVersion points to operand version.
+	// OperandVersion points to the operand version.
 	OperandVersion string
 }
 

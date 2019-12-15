@@ -1,8 +1,10 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"github.com/spf13/cobra"
+	"k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"os"
@@ -22,11 +24,13 @@ func NewStartCommand() *cobra.Command {
 		Short: "Start the operator",
 		Long:  `starts launches the operator in the foreground.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			_, err := load(cmd)
+			config, err := load(cmd)
 			if err != nil {
 				klog.Errorf("error loading configuration - %s", err.Error())
 				os.Exit(1)
 			}
+
+			run(config)
 		},
 	}
 
@@ -79,4 +83,31 @@ func load(command *cobra.Command) (config *operator.Config, err error) {
 
 	config = c
 	return
+}
+
+func run(config *operator.Config) {
+	shutdown, cancel := context.WithCancel(context.TODO())
+	config.ShutdownContext = shutdown
+
+	shutdownHandler := server.SetupSignalHandler()
+	go func() {
+		defer cancel()
+
+		<-shutdownHandler
+		klog.V(1).Info("[operator] Received SIGTERM or SIGINT signal, initiating shutdown.")
+	}()
+
+	klog.V(1).Infof("[operator] configuration - %s", config)
+	klog.V(1).Info("[operator] starting")
+
+	errorCh := make(chan error, 0)
+	runner := operator.NewRunner()
+	go runner.Run(config, errorCh)
+	if err := <-errorCh; err != nil {
+		klog.V(1).Infof("error running operator - %s", err.Error())
+	}
+
+	klog.Infof("[operator] operator is running, waiting for the operator to be done.")
+	<-runner.Done()
+	klog.Infof("process exiting.")
 }
