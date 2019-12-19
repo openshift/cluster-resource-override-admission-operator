@@ -14,8 +14,9 @@ import (
 )
 
 type enqueuer struct {
-	queue  workqueue.RateLimitingInterface
-	lister autoscalingv1listers.ClusterResourceOverrideLister
+	queue              workqueue.RateLimitingInterface
+	lister             autoscalingv1listers.ClusterResourceOverrideLister
+	ownerAnnotationKey string
 }
 
 func (e *enqueuer) Enqueue(obj interface{}) error {
@@ -24,7 +25,7 @@ func (e *enqueuer) Enqueue(obj interface{}) error {
 		return err
 	}
 
-	ownerName := getOwnerName(metaObj)
+	ownerName := getOwnerName(e.ownerAnnotationKey, metaObj)
 	if ownerName == "" {
 		return fmt.Errorf("could not find owner for %s/%s", metaObj.GetNamespace(), metaObj.GetName())
 	}
@@ -45,12 +46,7 @@ func (e *enqueuer) Enqueue(obj interface{}) error {
 	return nil
 }
 
-func getOwnerName(object metav1.Object) string {
-	const (
-		// TODO: use the function that returns this value.
-		key = "clusterresourceoverride.operator.autoscaling.openshift.io/owner"
-	)
-
+func getOwnerName(ownerAnnotationKey string, object metav1.Object) string {
 	// We check for annotations and owner references
 	// If both exist, owner references takes precedence.
 	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil && ownerRef.Kind == autoscalingv1.ClusterResourceOverrideKind {
@@ -59,7 +55,7 @@ func getOwnerName(object metav1.Object) string {
 
 	annotations := object.GetAnnotations()
 	if len(annotations) > 0 {
-		owner, ok := annotations[key]
+		owner, ok := annotations[ownerAnnotationKey]
 		if ok && owner != "" {
 			return owner
 		}
