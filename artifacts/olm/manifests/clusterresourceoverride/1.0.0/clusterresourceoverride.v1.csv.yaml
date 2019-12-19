@@ -1,0 +1,288 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: "[\n  {\n    \"apiVersion\": \"operator.autoscaling.openshift.io/v1\",\n    \"kind\": \"ClusterResourceOverride\",\n    \"metadata\": {\n      \"name\": \"cluster\"\n    },\n    \"spec\": {\n      \"podResourceOverride\": {\n        \"spec\": {\n          \"memoryRequestToLimitPercent\": 50,\n          \"cpuRequestToLimitPercent\": 25,\n          \"limitCPUToMemoryPercent\": 200\n        }\n      }\n    }\n  }\n]"
+    capabilities: Seamless Upgrades
+    categories: OpenShift Optional
+    certifiedLevel: Primed
+    containerImage: registry.svc.ci.openshift.org/autoscaler/clusterresourceoverride-operator:v1.0.0
+    createdAt: 2019/11/15
+    description: An operator to manage the OpenShift ClusterResourceOverride Mutating Admission Webhook Server
+    healthIndex: B
+    repository: https://github.com/openshift/cluster-resource-override-operator
+    support: Red Hat
+  name: clusterresourceoverride-operator.v1.0.0
+  namespace: clusterresourceoverride-operator
+spec:
+  customresourcedefinitions:
+    owned:
+      - description: Represents an instance of ClusterResourceOverride Admission Webhook
+        displayName: ClusterResourceOverride
+        kind: ClusterResourceOverride
+        name: clusterresourceoverrides.operator.autoscaling.openshift.io
+        version: v1
+  description: "# ClusterResourceOverride Admission Webhook for OpenShift\n\n## Introduction\n\nScheduling is based on\
+  \ resources requested, while quota and hard limits refer to resource limits, which can be set higher than requested\
+  \ resources. The difference between request and limit determines the level of overcommit; for instance,\
+  \ if a container is given a memory request of 1Gi and a memory limit of 2Gi, it is scheduled based on\
+  \ the 1Gi request being available on the node, but could use up to 2Gi; so it is 200% overcommitted.\
+  \ If OpenShift Container Platform administrators would like to control the level of overcommit and manage\
+  \ container density on nodes, ClusterResourceOverride Admission Webhook can be configured to override\
+  \ the ratio between request and limit set on developer containers. In conjunction with a per-project LimitRange\
+  \ specifying limits and defaults, this adjusts the container limit and request to achieve the desired level\
+  \ of overcommit.\n"
+  displayName: ClusterResourceOverride
+  install:
+    strategy: deployment
+    spec:
+      permissions:
+      - rules:
+        # to have the power to ensure RBAC for the operand
+        - apiGroups:
+            - rbac.authorization.k8s.io
+          resources:
+            - roles
+            - rolebindings
+          verbs:
+            - create
+            - update
+            - patch
+            - get
+
+        # to have the power to watch secondary resources
+        - apiGroups:
+            - ''
+          resources:
+            - configmaps
+            - secrets
+            - services
+            - serviceaccounts
+            - pods
+          verbs:
+            - get
+            - create
+            - update
+            - patch
+            - list
+            - watch
+
+        # to have the power to watch secondary resources
+        - apiGroups:
+            - apps
+          resources:
+            - daemonsets
+            - deployments
+          verbs:
+            - create
+            - get
+            - update
+            - patch
+            - list
+            - watch
+        serviceAccountName: clusterresourceoverride-operator
+      clusterPermissions:
+      - rules:
+        # to have the power to create 'RoleBinding' that refs extension-apiserver-authentication-reader
+        # in kube-system namespace.
+        # to give the operand power to read the config for terminating authentication.
+        - apiGroups:
+            - rbac.authorization.k8s.io
+          resources:
+            - rolebindings
+          verbs:
+            - create
+            - update
+            - patch
+            - get
+
+        # to have the power to read configmaps in the kube-system namespace
+        - apiGroups:
+            - ''
+          resources:
+            - configmaps
+          verbs:
+            - get
+
+        # to have the power to ensure RBAC for the operand
+        - apiGroups:
+            - rbac.authorization.k8s.io
+          resources:
+            - clusterroles
+            - clusterrolebindings
+          verbs:
+            - create
+            - update
+            - patch
+            - get
+
+        # to have the power to reconcile request(s)
+        - apiGroups:
+            - operator.autoscaling.openshift.io
+          resources:
+            - clusterresourceoverrides
+            - clusterresourceoverrides/status
+            - clusterresourceoverrides/finalizers
+          verbs:
+            - update
+            - get
+            - list
+            - watch
+
+        # to have the power to manage configuration for admission webhook
+        - apiGroups:
+            - admissionregistration.k8s.io
+          resources:
+            - mutatingwebhookconfigurations
+          verbs:
+            - create
+            - update
+            - patch
+            - delete
+            - list
+            - watch
+
+        # to have the power to manage APIService object(s)
+        - apiGroups:
+            - apiregistration.k8s.io
+          resources:
+            - apiservices
+          verbs:
+            - create
+            - update
+            - patch
+            - get
+            - list
+            - watch
+
+        # to grant the operand power to create admission reviews
+        - apiGroups:
+            - autoscaling.openshift.io
+          resources:
+            - clusterresourceoverride
+          verbs:
+            - create
+
+        # default for an aggregated apiserver
+        - apiGroups:
+            - admissionregistration.k8s.io
+          resources:
+            - validatingwebhookconfigurations
+            - mutatingwebhookconfigurations
+          verbs:
+            - get
+            - list
+            - watch
+
+        # to grant power to the operand to watch namespace(s)
+        - apiGroups:
+            - ""
+          resources:
+            - namespaces
+          verbs:
+            - get
+            - list
+            - watch
+
+        # to grant power to the operand to delegate authentication and authorization
+        - apiGroups:
+            - authentication.k8s.io
+          resources:
+            - tokenreviews
+          verbs:
+            - create
+        - apiGroups:
+            - authorization.k8s.io
+          resources:
+            - subjectaccessreviews
+          verbs:
+            - create
+
+        # to grant power to the operand to use hostnetwork scc
+        - apiGroups:
+            - security.openshift.io
+          resources:
+            - securitycontextconstraints
+          verbs:
+            - use
+          resourceNames:
+            - hostnetwork
+
+        # to grant power to the operand to allow anonymous access to the admission server
+        - apiGroups:
+            - admission.autoscaling.openshift.io
+          resources:
+            - clusterresourceoverrides
+          verbs:
+            - create
+            - get
+        serviceAccountName: clusterresourceoverride-operator
+      deployments:
+        - name: clusterresourceoverride-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                clusterresourceoverride.operator: "true"
+            template:
+              metadata:
+                name: clusterresourceoverride
+                labels:
+                  clusterresourceoverride.operator: "true"
+              spec:
+                serviceAccountName: clusterresourceoverride-operator
+                containers:
+                  - name: clusterresourceoverride-operator
+                    image: docker.io/tohinkashem/clusterresourceoverride-operator:dev
+                    imagePullPolicy: Always
+                    args:
+                      - "start"
+                      - "--namespace=$(OPERAND_NAMESPACE)"
+                      - "--v=2"
+                    env:
+                      - name: OPERATOR_POD_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: OPERAND_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: OPERAND_IMAGE
+                        value: docker.io/tohinkashem/clusterresourceoverride@sha256:f99ed0d7ecf197596bb34eed342ddc8a9169f68b68a457ee5a15070bc68e848a
+                      - name: OPERAND_VERSION
+                        value: 1.0.0
+                    ports:
+                      - containerPort: 8080
+                    readinessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8080
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8080
+                      initialDelaySeconds: 5
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: false
+      type: AllNamespaces
+  keywords:
+    - deschedule
+    - scale
+    - binpack
+    - efficiency
+  labels:
+    olm-owner-enterprise-app: clusterresourceoverride-operator
+    olm-status-descriptors: clusterresourceoverride-operator.v1.0.0
+  maintainers:
+    - email: support@redhat.com
+      name: Red Hat
+  provider:
+    name: Red Hat
+  version: 1.0.0

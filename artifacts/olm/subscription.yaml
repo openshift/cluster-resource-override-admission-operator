@@ -1,0 +1,9 @@
+kind: Subscription
+metadata:
+  name: clusterresourceoverride
+  namespace: clusterresourceoverride-operator
+spec:
+  channel: stable
+  name: clusterresourceoverride
+  source: clusterresourceoverride-catalog
+  sourceNamespace: clusterresourceoverride-operator

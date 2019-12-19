@@ -21,9 +21,10 @@ dev-image:
 dev-push:
 	docker push $(DEV_IMAGE_REGISTRY):$(IMAGE_TAG)
 
+# build and push the OLM manifests for this operator into an operator-registry image
 registry:
-	docker build -t docker.io/tohinkashem/clusterresourceoverride-registry:latest -f images/operator-registry/Dockerfile.registry .
-	docker push docker.io/tohinkashem/clusterresourceoverride-registry:latest
+	docker build -t $(OLM_IMAGE_REGISTRY):$(IMAGE_TAG) -f images/operator-registry/Dockerfile.registry .
+	docker push $(OLM_IMAGE_REGISTRY):$(IMAGE_TAG)
 
 .PHONY: vendor
 vendor:
