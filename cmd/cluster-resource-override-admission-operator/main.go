@@ -25,7 +25,7 @@ func main() {
 
 	command := &cobra.Command{
 		Use:   "clusterresourceoverride-operator",
-		Short: "OpenShift ClusterResourceOverride Mutating Admission Webhook Operator",
+		Short: "OpenShift ClusterResourceOverride Operator",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 			os.Exit(1)
