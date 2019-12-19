@@ -1,0 +1,13 @@
+---
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+spec:
+  tags:
+  - name: clusterresourceoverride-operator
+    from:
+      kind: DockerImage
+      name: quay.io/openshift/clusterresourceoverride-operator:4.4
+  - name: clusterresourceoverride
+    from:
+      kind: DockerImage
+      name: quay.io/openshift/clusterresourceoverride:4.4
