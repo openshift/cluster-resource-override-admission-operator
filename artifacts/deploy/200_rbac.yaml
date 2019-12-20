@@ -1,0 +1,214 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: clusterresourceoverride-operator
+rules:
+  # to have the power to create 'RoleBinding' that refs extension-apiserver-authentication-reader
+  # in kube-system namespace.
+  # to give the operand power to read the config for terminating authentication.
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - rolebindings
+    verbs:
+    - create
+    - update
+    - patch
+    - get
+
+  # to have the power to read configmaps in the kube-system namespace
+  - apiGroups:
+    - ''
+    resources:
+    - configmaps
+    verbs:
+    - get
+
+  # to have the power to ensure RBAC for the operand
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - clusterroles
+    - clusterrolebindings
+    verbs:
+    - create
+    - update
+    - patch
+    - get
+
+  # to have the power to reconcile request(s)
+  - apiGroups:
+    - operator.autoscaling.openshift.io
+    resources:
+    - clusterresourceoverrides
+    - clusterresourceoverrides/status
+    - clusterresourceoverrides/finalizers
+    verbs:
+    - update
+    - get
+    - list
+    - watch
+
+  # to have the power to manage configuration for admission webhook
+  - apiGroups:
+    - admissionregistration.k8s.io
+    resources:
+    - mutatingwebhookconfigurations
+    verbs:
+    - create
+    - update
+    - patch
+    - delete
+    - list
+    - watch
+
+  # to have the power to manage APIService object(s)
+  - apiGroups:
+    - apiregistration.k8s.io
+    resources:
+    - apiservices
+    verbs:
+    - create
+    - update
+    - patch
+    - get
+    - list
+    - watch
+
+  # to grant the operand power to create admission reviews
+  - apiGroups:
+    - autoscaling.openshift.io
+    resources:
+    - clusterresourceoverride
+    verbs:
+    - create
+
+  # default for an aggregated apiserver
+  - apiGroups:
+    - admissionregistration.k8s.io
+    resources:
+    - validatingwebhookconfigurations
+    - mutatingwebhookconfigurations
+    verbs:
+    - get
+    - list
+    - watch
+
+  # to grant power to the operand to watch namespace(s)
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+
+  # to grant power to the operand to delegate authentication and authorization
+  - apiGroups:
+    - authentication.k8s.io
+    resources:
+    - tokenreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+
+  # to grant power to the operand to use hostnetwork scc
+  - apiGroups:
+    - security.openshift.io
+    resources:
+    - securitycontextconstraints
+    verbs:
+    - use
+    resourceNames:
+    - hostnetwork
+
+  # to grant power to the operand to allow anonymous access to the admission server
+  - apiGroups:
+    - admission.autoscaling.openshift.io
+    resources:
+    - clusterresourceoverrides
+    verbs:
+    - create
+    - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: clusterresourceoverride-operator
+  namespace: clusterresourceoverride-operator
+rules:
+  # to have the power to ensure RBAC for the operand
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - roles
+    - rolebindings
+    verbs:
+    - create
+    - update
+    - patch
+    - get
+
+  # to have the power to watch secondary resources
+  - apiGroups:
+    - ''
+    resources:
+    - configmaps
+    - secrets
+    - services
+    - serviceaccounts
+    - pods
+    verbs:
+    - get
+    - create
+    - update
+    - patch
+    - list
+    - watch
+
+  # to have the power to watch secondary resources
+  - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    - deployments
+    verbs:
+    - create
+    - get
+    - update
+    - patch
+    - list
+    - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: clusterresourceoverride-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: clusterresourceoverride-operator
+subjects:
+  - kind: ServiceAccount
+    name: clusterresourceoverride-operator
+    namespace: clusterresourceoverride-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: clusterresourceoverride-operator
+  namespace: clusterresourceoverride-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: clusterresourceoverride-operator
+subjects:
+  - kind: ServiceAccount
+    name: clusterresourceoverride-operator
+    namespace: clusterresourceoverride-operator

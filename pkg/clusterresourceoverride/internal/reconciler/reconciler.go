@@ -25,12 +25,20 @@ var (
 
 func NewReconciler(options *handlers.Options) *reconciler {
 	handlers := HandlerChain{
+		handlers.NewAvailabilityHandler(options),
 		handlers.NewValidationHandler(options),
+		handlers.NewConfigurationHandler(options),
+		handlers.NewCertGenerationHandler(options),
+		handlers.NewCertReadyHandler(options),
+		handlers.NewDaemonSetHandler(options),
+		handlers.NewDeploymentReadyHandler(options),
+		handlers.NewWebhookConfigurationHandlerHandler(options),
+		handlers.NewAvailabilityHandler(options),
 	}
 
 	return &reconciler{
 		client:   options.Client.Operator,
-		lister:   options.CROLister,
+		lister:   options.PrimaryLister,
 		handlers: handlers,
 		updater: &StatusUpdater{
 			client: options.Client.Operator,

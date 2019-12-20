@@ -1,0 +1,6 @@
+# to be able to assign powers to the operator
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: clusterresourceoverride-operator
+  name: clusterresourceoverride-operator

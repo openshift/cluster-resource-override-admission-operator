@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  namespace: clusterresourceoverride-operator
+  name: clusterresourceoverride-operator
+  labels:
+    clusterresourceoverride.operator: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      clusterresourceoverride.operator: "true"
+  template:
+    metadata:
+      name: clusterresourceoverride
+      labels:
+        clusterresourceoverride.operator: "true"
+    spec:
+      serviceAccountName: clusterresourceoverride-operator
+      containers:
+        - name: clusterresourceoverride-operator
+          image: docker.io/tohinkashem/clusterresourceoverride-operator:dev
+          imagePullPolicy: Always
+          args:
+            - "start"
+            - "--namespace=$(OPERAND_NAMESPACE)"
+            - "--v=2"
+          env:
+            - name: OPERATOR_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERAND_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERAND_IMAGE
+              value: docker.io/tohinkashem/clusterresourceoverride@sha256:f99ed0d7ecf197596bb34eed342ddc8a9169f68b68a457ee5a15070bc68e848a
+            - name: OPERAND_VERSION
+              value: 1.0.0
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5

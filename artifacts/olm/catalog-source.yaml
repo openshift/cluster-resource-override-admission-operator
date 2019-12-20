@@ -1,0 +1,8 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: clusterresourceoverride-catalog
+  namespace: clusterresourceoverride-operator
+spec:
+  sourceType: grpc
+  image: docker.io/tohinkashem/clusterresourceoverride-registry:latest

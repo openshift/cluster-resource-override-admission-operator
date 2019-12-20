@@ -2,7 +2,8 @@ package clusterresourceoverride
 
 import (
 	"errors"
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/deploy"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/ensurer"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,13 +14,14 @@ import (
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/handlers"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/reconciler"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/controller"
 	autoscalingv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
 	listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
-
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/handlers"
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/reconciler"
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
 )
 
 const (
@@ -66,11 +68,19 @@ func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, 
 
 	lister := listers.NewClusterResourceOverrideLister(indexer)
 
+	// setup operand asset
+	operandAsset := asset.New(options.RuntimeContext)
+
+	// initialize install strategy, we use daemonset
+	d := deploy.NewDaemonSetInstall(options.Lister.AppsV1DaemonSetLister(), options.RuntimeContext, operandAsset, ensurer.NewDaemonSetEnsurer(options.Client.Dynamic))
+
 	reconciler := reconciler.NewReconciler(&handlers.Options{
-		OperandContext: options.RuntimeContext,
-		Client:         options.Client,
-		CROLister:      lister,
-		KubeLister:     options.Lister,
+		OperandContext:  options.RuntimeContext,
+		Client:          options.Client,
+		PrimaryLister:   lister,
+		SecondaryLister: options.Lister,
+		Asset:           operandAsset,
+		Deploy:          d,
 	})
 
 	c = &clusterResourceOverrideController{
@@ -81,8 +91,9 @@ func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, 
 		lister:     lister,
 	}
 	e = &enqueuer{
-		queue:  queue,
-		lister: lister,
+		queue:              queue,
+		lister:             lister,
+		ownerAnnotationKey: operandAsset.Values().OwnerAnnotationKey,
 	}
 
 	return
