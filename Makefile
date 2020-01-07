@@ -1,8 +1,13 @@
 all: build
-.PHONY: all
+.PHONY: all manifests
+
+OUTPUT_DIR := "./_output"
+ARTIFACTS := "./artifacts"
 
 GO=GO111MODULE=on GOFLAGS=-mod=vendor go
 GO_BUILD_BINDIR := bin
+
+GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 
 # Include the library makefile
 include $(addprefix ./vendor/github.com/openshift/library-go/alpha-build-machinery/make/, \
@@ -49,3 +54,43 @@ codegen-internal:
 	cp boilerplate.go.txt vendor/k8s.io/code-generator/hack/boilerplate.go.txt
 	$(CODEGEN_INTERNAL) deepcopy,conversion,client,lister,informer $(PKG)/pkg/generated $(PKG)/pkg/apis $(PKG)/pkg/apis "autoscaling:v1"
 
+
+deploy-local: DEPLOY_MODE := local
+deploy-local: deploy
+
+deploy-ci: DEPLOY_MODE := ci
+deploy-ci: deploy
+
+deploy: DEPLOY_MANIFESTS_SOURCE := "$(ARTIFACTS)/deploy"
+deploy: DEPLOY_DIR := "$(OUTPUT_DIR)/deploy"
+deploy: DEPLOYMENT_YAML := "$(DEPLOY_DIR)/300_deployment.yaml"
+deploy: IMAGE_URL_FILE_PATH := "$(OUTPUT_DIR)/image.json"
+deploy:
+	rm -rf $(OUTPUT_DIR)
+	mkdir -p $(DEPLOY_DIR)
+	cp -r $(DEPLOY_MANIFESTS_SOURCE)/* $(DEPLOY_DIR)/
+	cp manifests/4.4/clusterresourceoverride.crd.yaml $(DEPLOY_DIR)/
+
+	# write image URL(s) into a json file and
+	# update the Deployment YAML with the image URL(s)
+	$(GO) run ./test/image/main.go --mode=$(DEPLOY_MODE) --output=$(IMAGE_URL_FILE_PATH)
+	./hack/update-image-url.sh "$(IMAGE_URL_FILE_PATH)" "$(DEPLOYMENT_YAML)"
+
+	kubectl apply -f $(DEPLOY_DIR)
+
+
+e2e-ci: deploy-ci e2e
+e2e-local: deploy-local e2e
+
+e2e: OPERATOR_NAMESPACE := clusterresourceoverride-operator
+e2e:
+	kubectl -n $(OPERATOR_NAMESPACE) rollout status -w deployment/clusterresourceoverride-operator
+
+	export GO111MODULE=on
+	$(GO) test -v -count=1 -timeout=15m ./test/e2e/... --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
+
+
+
+
+clean:
+	rm -rf $(OUTPUT_DIR)

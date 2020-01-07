@@ -11,15 +11,15 @@ import (
 
 func (in *ClusterResourceOverride) IsTimeToRotateCert() bool {
 	if in.Status.CertsRotateAt.IsZero() {
-		return false
+		return true
 	}
 
 	now := metav1.Now()
-	if !in.Status.CertsRotateAt.Before(&now) {
-		return false
+	if in.Status.CertsRotateAt.Before(&now) {
+		return true
 	}
 
-	return true
+	return false
 }
 
 func (in *PodResourceOverrideSpec) String() string {
