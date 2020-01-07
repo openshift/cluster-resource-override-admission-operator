@@ -201,32 +201,11 @@ make build
 # build and push operator image
 make dev-image DEV_IMAGE_REGISTRY=docker.io/{your org}/clusterresourceoverride-operator IMAGE_TAG=dev
 make dev-push DEV_IMAGE_REGISTRY=docker.io/{your org}/clusterresourceoverride-operator IMAGE_TAG=dev
-```  
 
-Make sure the `Deployment` YAML file points to the right operator and operad image
-```yaml
-apiVersion: extensions/v1beta1
-kind: Deployment
-spec:
-  template:
-    spec:
-      containers:
-        - name: clusterresourceoverride-operator
-
-          # operator image 
-          image: quay.io/{desired org}/clusterresourceoverride-operator@sha256:{desired sha}
-
-          env:
-            - name: OPERAND_IMAGE
-              value: quay.io/{desired org}/clusterresourceoverride@sha256:{desired sha}
-            - name: OPERAND_VERSION
-              value: 1.0.0
-```
-
-Now, apply the kubernetes manifests. By default the operator is installed in the `clusterresourceoverride-operator`namespace.
-```yaml
-kubectl apply -f artifacts/operator-namespace.yaml
-kubectl apply -f artifacts/deploy/
+# deploy on local cluster
+# CLUSTERRESOURCEOVERRIDE_OPERAND_IMAGE: operator image
+# CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE: operand image
+make deploy-local CLUSTERRESOURCEOVERRIDE_OPERAND_IMAGE="{operand image}" CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE="{operator image}
 ```
 
 ## Deploy via OLM
