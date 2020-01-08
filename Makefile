@@ -9,6 +9,8 @@ GO_BUILD_BINDIR := bin
 
 GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 
+KUBECTL = kubectl
+
 # Include the library makefile
 include $(addprefix ./vendor/github.com/openshift/library-go/alpha-build-machinery/make/, \
 	golang.mk \
@@ -58,6 +60,8 @@ codegen-internal:
 deploy-local: DEPLOY_MODE := local
 deploy-local: deploy
 
+# oc binary should be in test pod's /tmp/shared dir
+deploy-ci: KUBECTL=/tmp/shared/oc
 deploy-ci: DEPLOY_MODE := ci
 deploy-ci: deploy
 
@@ -76,7 +80,7 @@ deploy:
 	$(GO) run ./test/image/main.go --mode=$(DEPLOY_MODE) --output=$(IMAGE_URL_FILE_PATH)
 	./hack/update-image-url.sh "$(IMAGE_URL_FILE_PATH)" "$(DEPLOYMENT_YAML)"
 
-	kubectl apply -f $(DEPLOY_DIR)
+	$(KUBECTL) apply -f $(DEPLOY_DIR)
 
 
 e2e-ci: deploy-ci e2e
