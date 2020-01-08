@@ -88,7 +88,7 @@ e2e-local: deploy-local e2e
 
 e2e: OPERATOR_NAMESPACE := clusterresourceoverride-operator
 e2e:
-	kubectl -n $(OPERATOR_NAMESPACE) rollout status -w deployment/clusterresourceoverride-operator
+	$(KUBECTL) -n $(OPERATOR_NAMESPACE) rollout status -w deployment/clusterresourceoverride-operator
 
 	export GO111MODULE=on
 	$(GO) test -v -count=1 -timeout=15m ./test/e2e/... --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
