@@ -23,6 +23,8 @@ rules:
     - configmaps
     verbs:
     - get
+    - list
+    - watch
 
   # to have the power to ensure RBAC for the operand
   - apiGroups:

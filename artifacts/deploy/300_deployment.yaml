@@ -21,6 +21,8 @@ spec:
         - name: clusterresourceoverride-operator
           image: CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE
           imagePullPolicy: Always
+          command:
+            - /usr/bin/cluster-resource-override-admission-operator
           args:
             - "start"
             - "--namespace=$(OPERAND_NAMESPACE)"

@@ -2,4 +2,3 @@ FROM centos:7
 
 ADD bin/cluster-resource-override-admission-operator /usr/bin
 
-ENTRYPOINT ["/usr/bin/cluster-resource-override-admission-operator"]

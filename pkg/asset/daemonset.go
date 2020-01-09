@@ -61,13 +61,16 @@ func (d *daemonset) New() *appsv1.DaemonSet {
 							Name:            d.Name(),
 							Image:           values.OperandImage,
 							ImagePullPolicy: corev1.PullAlways,
+							Command: []string{
+								"/usr/bin/cluster-resource-override-admission",
+							},
 							Args: []string{
 								"--secure-port=9400",
 								"--bind-address=127.0.0.1",
 								"--audit-log-path=-",
 								"--tls-cert-file=/var/serving-cert/tls.crt",
 								"--tls-private-key-file=/var/serving-cert/tls.key",
-								"--v=8",
+								"--v=3",
 							},
 							Env: []corev1.EnvVar{
 								{

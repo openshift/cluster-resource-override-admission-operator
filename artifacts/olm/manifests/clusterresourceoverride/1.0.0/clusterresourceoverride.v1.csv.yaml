@@ -276,6 +276,8 @@ spec:
                   - name: clusterresourceoverride-operator
                     image: docker.io/tohinkashem/clusterresourceoverride-operator:dev
                     imagePullPolicy: Always
+                    command:
+                      - /usr/bin/cluster-resource-override-admission-operator
                     args:
                       - "start"
                       - "--namespace=$(OPERAND_NAMESPACE)"
