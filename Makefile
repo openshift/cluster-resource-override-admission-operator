@@ -83,7 +83,9 @@ deploy:
 	$(KUBECTL) apply -f $(DEPLOY_DIR)
 
 
+e2e-ci: KUBECTL=/tmp/shared/oc
 e2e-ci: deploy-ci e2e
+
 e2e-local: deploy-local e2e
 
 e2e: OPERATOR_NAMESPACE := clusterresourceoverride-operator
