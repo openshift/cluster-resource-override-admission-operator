@@ -5,4 +5,4 @@ metadata:
   namespace: clusterresourceoverride-operator
 spec:
   sourceType: grpc
-  image: docker.io/tohinkashem/clusterresourceoverride-registry:latest
+  image: quay.io/redhat/clusterresourceoverride-registry:latest

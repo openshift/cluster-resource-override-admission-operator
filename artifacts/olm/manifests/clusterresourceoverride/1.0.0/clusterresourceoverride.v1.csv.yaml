@@ -6,7 +6,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: OpenShift Optional
     certifiedLevel: Primed
-    containerImage: registry.svc.ci.openshift.org/autoscaler/clusterresourceoverride-operator:v1.0.0
+    containerImage: quay.io/redhat/clusterresourceoverride-operator
     createdAt: 2019/11/15
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating Admission Webhook Server
     healthIndex: B
@@ -144,6 +144,8 @@ spec:
             - configmaps
           verbs:
             - get
+            - list
+            - watch
 
         # to have the power to ensure RBAC for the operand
         - apiGroups:
@@ -274,7 +276,7 @@ spec:
                 serviceAccountName: clusterresourceoverride-operator
                 containers:
                   - name: clusterresourceoverride-operator
-                    image: docker.io/tohinkashem/clusterresourceoverride-operator:dev
+                    image: quay.io/redhat/clusterresourceoverride-operator@sha256:a029c09be327d820ed4282a9af424c3dc1288cbe2be1ab33d596d30c9a229699
                     imagePullPolicy: Always
                     command:
                       - /usr/bin/cluster-resource-override-admission-operator
@@ -292,7 +294,7 @@ spec:
                           fieldRef:
                             fieldPath: metadata.namespace
                       - name: OPERAND_IMAGE
-                        value: docker.io/tohinkashem/clusterresourceoverride@sha256:f99ed0d7ecf197596bb34eed342ddc8a9169f68b68a457ee5a15070bc68e848a
+                        value: quay.io/redhat/clusterresourceoverride@sha256:ad2aa88f20e7662e3942f9b3ceba982f479ed0932ffc1b5610503064555af6a4
                       - name: OPERAND_VERSION
                         value: 1.0.0
                     ports:

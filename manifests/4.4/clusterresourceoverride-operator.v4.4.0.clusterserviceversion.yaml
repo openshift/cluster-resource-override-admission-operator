@@ -145,6 +145,8 @@ spec:
             - configmaps
           verbs:
             - get
+            - list
+            - watch
 
         # to have the power to ensure RBAC for the operand
         - apiGroups:
@@ -277,6 +279,8 @@ spec:
                   - name: clusterresourceoverride-operator
                     image: quay.io/openshift/clusterresourceoverride-operator:4.4
                     imagePullPolicy: Always
+                    command:
+                      - /usr/bin/cluster-resource-override-admission-operator
                     args:
                       - "start"
                       - "--namespace=$(OPERAND_NAMESPACE)"
