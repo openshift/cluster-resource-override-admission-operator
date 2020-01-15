@@ -7,7 +7,7 @@ metadata:
     categories: OpenShift Optional
     certifiedLevel: Primed
     olm.skipRange: ">=4.3.0 <4.4.0"
-    containerImage: quay.io/openshift/clusterresourceoverride-operator:4.4
+    containerImage: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.4
     createdAt: 2019/11/15
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating Admission Webhook Server
     healthIndex: B
@@ -277,7 +277,7 @@ spec:
                 serviceAccountName: clusterresourceoverride-operator
                 containers:
                   - name: clusterresourceoverride-operator
-                    image: quay.io/openshift/clusterresourceoverride-operator:4.4
+                    image: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.4
                     imagePullPolicy: Always
                     command:
                       - /usr/bin/cluster-resource-override-admission-operator
@@ -295,7 +295,7 @@ spec:
                           fieldRef:
                             fieldPath: metadata.namespace
                       - name: OPERAND_IMAGE
-                        value: quay.io/openshift/clusterresourceoverride:4.4
+                        value: quay.io/openshift/clusterresourceoverride-rhel7:4.4
                       - name: OPERAND_VERSION
                         value: 1.0.0
                     ports:
