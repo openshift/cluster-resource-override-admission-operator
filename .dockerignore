@@ -1,0 +1,9 @@
+./bin/*
+
+manifests/art.yaml
+manifests/*/image-references
+
+# we need to ignore the following files when we build
+# image from the _output folder.
+_output/manifests/art.yaml
+_output/manifests/*/image-references

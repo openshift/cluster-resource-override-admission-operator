@@ -3,6 +3,7 @@ module github.com/openshift/cluster-resource-override-admission-operator
 go 1.12
 
 require (
+	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/openshift/library-go v0.0.0-20191118102510-4e2c7112d252
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5

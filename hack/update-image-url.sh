@@ -4,20 +4,22 @@ set -ex
 
 which jq &>/dev/null || { echo "Please install jq (https://stedolan.github.io/jq/)."; exit 1; }
 
-IMAGE_URL_FILE_PATH=$1
-if [ "${IMAGE_URL_FILE_PATH}" == "" ]; then
-  echo "Must specify path to the file that has the operator/operand image URL(s)"
+CONFIGMAP_ENV_FILE=$1
+if [ "${CONFIGMAP_ENV_FILE}" == "" ]; then
+  echo "Must specify path to the ConfigMap env file"
   exit 1
 fi
 
-DEPLOYMENT_YAML=$2
-if [ "${DEPLOYMENT_YAML}" == "" ]; then
-  echo "Must specify a path to the yaml file for the Deployment object"
+FILE_TO_CHANGE=$2
+if [ "${FILE_TO_CHANGE}" == "" ]; then
+  echo "Must specify a path to the file that you want to update"
   exit 1
 fi
 
-OPERATOR_IMAGE=$(cat ${IMAGE_URL_FILE_PATH} | jq '."operator"')
-OPERAND_IMAGE=$(cat ${IMAGE_URL_FILE_PATH} | jq '."operand"')
+REGISTRY_IMAGE=$(cat ${CONFIGMAP_ENV_FILE} | jq '.data.OPERATOR_REGISTRY_IMAGE_URL')
+OPERATOR_IMAGE=$(cat ${CONFIGMAP_ENV_FILE} | jq '.data.OPERATOR_IMAGE_URL')
+OPERAND_IMAGE=$(cat ${CONFIGMAP_ENV_FILE} | jq '.data.OPERAND_IMAGE_URL')
 
-sed "s,CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE,${OPERATOR_IMAGE},g" -i "${DEPLOYMENT_YAML}"
-sed "s,CLUSTERRESOURCEOVERRIDE_OPERAND_IMAGE,${OPERAND_IMAGE},g" -i "${DEPLOYMENT_YAML}"
+sed "s,CLUSTERRESOURCEOVERRIDE_OPERATOR_REGISTRY_IMAGE,${REGISTRY_IMAGE},g" -i "${FILE_TO_CHANGE}"
+sed "s,CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE,${OPERATOR_IMAGE},g" -i "${FILE_TO_CHANGE}"
+sed "s,CLUSTERRESOURCEOVERRIDE_OPERAND_IMAGE,${OPERAND_IMAGE},g" -i "${FILE_TO_CHANGE}"
