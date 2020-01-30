@@ -18,8 +18,8 @@ FROM registry.svc.ci.openshift.org/openshift/release:golang-1.12
 ARG VERSION
 
 # copy required binaries and scripts
-COPY --from=registry-builder /build/bin/initializer /usr/bin/initializer
-COPY --from=registry-builder /build/bin/registry-server /usr/bin/registry-server
+COPY --from=registry-builder /bin/initializer /usr/bin/initializer
+COPY --from=registry-builder /bin/registry-server /usr/bin/registry-server
 COPY --from=registry-builder /bin/grpc_health_probe /usr/bin/grpc_health_probe
 COPY --from=operator-builder /scripts/registry-init.sh /scripts/registry-init.sh
 
