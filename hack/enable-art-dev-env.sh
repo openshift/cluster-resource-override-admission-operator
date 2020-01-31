@@ -14,8 +14,13 @@ if [ "${QUAY_ROBOT_NAME}" == "" ]; then
   exit 1
 fi
 
+if [ "${QUAY_ROBOT_TOKEN}" == "" ]; then
+  echo "QUAY_ROBOT_TOKEN env must be set"
+  exit 1
+fi
+
 RESPONSE=$(curl -sH "Content-Type: application/json" -XPOST https://quay.io/cnr/api/v1/users/login -d '{ "user": { "username": "'"${QUAY_ROBOT_NAME}"'","password": "'"${QUAY_ROBOT_TOKEN}"'"}}')
-QUAY_TOKEN=$(jq -e -r '.token' <<< "${QUAY_TOKEN}" || echo "")
+QUAY_TOKEN=$(jq -e -r '.token' <<< "${RESPONSE}" || echo "")
 
 if [ "${QUAY_TOKEN}" == "" ]; then
   echo "failed to retrieve token response=${RESPONSE}"
