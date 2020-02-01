@@ -122,7 +122,7 @@ e2e:
 # apply OLM resources to deploy the operator.
 olm-apply:
 	$(KUBECTL) apply -n $(OPERATOR_NAMESPACE) -f $(OLM_MANIFESTS_DIR)
-	./hack/wait-for-deployment.sh $(OPERATOR_NAMESPACE) $(OPERATOR_DEPLOYMENT_NAME) 100
+	./hack/wait-for-deployment.sh $(OPERATOR_NAMESPACE) $(OPERATOR_DEPLOYMENT_NAME) 500
 
 # generate OLM resources (Subscription and OperatorGroup etc.) to install the operator via olm.
 olm-generate: OPERATOR_GROUP_FILE := "$(OLM_MANIFESTS_DIR)/operator-group.yaml"
