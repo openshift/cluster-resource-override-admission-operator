@@ -223,11 +223,12 @@ spec:
             - list
             - watch
 
-        # to grant power to the operand to watch namespace(s)
+        # to grant power to the operand to watch Namespace(s) and LimitRange(s)
         - apiGroups:
             - ""
           resources:
             - namespaces
+            - limitranges
           verbs:
             - get
             - list

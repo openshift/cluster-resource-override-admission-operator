@@ -32,7 +32,7 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1beta1.Mutat
 	namespaceMatchLabelKey := fmt.Sprintf("%s.%s/enabled", m.values.AdmissionAPIResource, m.values.AdmissionAPIGroup)
 	timeoutSeconds := int32(5)
 	sideEffects := admissionregistrationv1beta1.SideEffectClassNone
-
+	reinvoke := admissionregistrationv1beta1.IfNeededReinvocationPolicy
 	return &admissionregistrationv1beta1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MutatingWebhookConfiguration",
@@ -88,9 +88,10 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1beta1.Mutat
 						},
 					},
 				},
-				FailurePolicy:  &policy,
-				TimeoutSeconds: &timeoutSeconds,
-				SideEffects:    &sideEffects,
+				FailurePolicy:      &policy,
+				TimeoutSeconds:     &timeoutSeconds,
+				SideEffects:        &sideEffects,
+				ReinvocationPolicy: &reinvoke,
 			},
 		},
 	}
