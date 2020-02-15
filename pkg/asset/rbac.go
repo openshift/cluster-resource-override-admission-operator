@@ -135,12 +135,14 @@ func (s *rbac) New() []*RBACItem {
 							"watch",
 						},
 					},
+					// to give power to the operand to watch Namespace and LimitRange
 					{
 						APIGroups: []string{
 							"",
 						},
 						Resources: []string{
 							"namespaces",
+							"limitranges",
 						},
 						Verbs: []string{
 							"get",

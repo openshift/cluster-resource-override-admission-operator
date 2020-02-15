@@ -142,6 +142,96 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name: "WithLimitRangeWithDefaultLimitForCPUAndMemory",
+			limitRangeSpec: &corev1.LimitRangeSpec{
+				Limits: []corev1.LimitRangeItem{
+					{
+						Type: corev1.LimitTypeContainer,
+						Default: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("512Mi"),
+							corev1.ResourceCPU:    resource.MustParse("2000m"),
+						},
+					},
+				},
+			},
+			request: &corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  "app",
+						Image: "openshift/hello-openshift",
+						Ports: []corev1.ContainerPort{
+							{
+								Name:          "app",
+								ContainerPort: 60100,
+							},
+						},
+					},
+				},
+			},
+			resourceWant: map[string]corev1.ResourceRequirements{
+				"app": {
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("512Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1000m"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("256Mi"),
+						corev1.ResourceCPU:    resource.MustParse("250m"),
+					},
+				},
+			},
+		},
+
+		// LimitRange Maximum for CPU is 1000m, the operator, as expected is going to
+		// override the CPU limit of the Pod to 2000m (since LimitCPUToMemoryPercent=200).
+		// But then it should clamp it to the namespace Limit Maximum.
+		{
+			name: "WithLimitRangeWithMaximumForCPU",
+			limitRangeSpec: &corev1.LimitRangeSpec{
+				Limits: []corev1.LimitRangeItem{
+					{
+						Type: corev1.LimitTypeContainer,
+						Max: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("1024Mi"),
+							corev1.ResourceCPU:    resource.MustParse("1000m"),
+						},
+					},
+				},
+			},
+			request: &corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  "app",
+						Image: "openshift/hello-openshift",
+						Ports: []corev1.ContainerPort{
+							{
+								Name:          "app",
+								ContainerPort: 60100,
+							},
+						},
+						Resources: corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("1024Mi"),
+								corev1.ResourceCPU:    resource.MustParse("1000m")},
+						},
+					},
+				},
+			},
+			resourceWant: map[string]corev1.ResourceRequirements{
+				"app": {
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("1024Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1000m"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("512Mi"),
+						corev1.ResourceCPU:    resource.MustParse("250m"),
+					},
+				},
+			},
+		},
 	}
 
 	client := helper.NewClient(t, options.config)
@@ -224,7 +314,7 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 		Spec: after,
 	}
 
-	t.Logf("final configuration - %s", before.String())
+	t.Logf("final configuration - %s", after.String())
 
 	current, changed = helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override)
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))

@@ -250,7 +250,7 @@ func IsMatch(t *testing.T, requirementsWant, requirementsGot corev1.ResourceRequ
 	quantityWant, ok := requirementsWant.Requests[corev1.ResourceMemory]
 	if ok {
 		quantityGot, ok := requirementsGot.Requests[corev1.ResourceMemory]
-		require.True(t, ok)
+		require.Truef(t, ok, "key=%s not found in %v", corev1.ResourceMemory, requirementsGot)
 		require.Truef(t, quantityWant.Equal(quantityGot), "type=request resource=%s expected=%v actual=%v",
 			corev1.ResourceMemory, quantityWant, quantityGot)
 	}
@@ -303,9 +303,11 @@ func MustMatchMemoryAndCPU(t *testing.T, resourceWant map[string]corev1.Resource
 
 func NewLimitRanges(t *testing.T, client kubernetes.Interface, namespace string, spec corev1.LimitRangeSpec) (object *corev1.LimitRange, disposer Disposer) {
 	request := corev1.LimitRange{
-		TypeMeta:   metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{},
-		Spec:       corev1.LimitRangeSpec{},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "cro-limits-",
+			Namespace:    namespace,
+		},
+		Spec: spec,
 	}
 
 	object, err := client.CoreV1().LimitRanges(namespace).Create(&request)

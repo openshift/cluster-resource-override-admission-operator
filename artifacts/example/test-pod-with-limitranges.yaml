@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: example
+  namespace: test
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: "2000m"
+      memory: "512Mi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example
+  labels:
+    app: hello-openshift
+  namespace: test
+spec:
+  containers:
+    - name: hello-openshift
+      image: openshift/hello-openshift
+      ports:
+        - containerPort: 8080
+
