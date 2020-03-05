@@ -30,5 +30,5 @@ cat ${CSV_FILE_PATH_IN_REGISTRY_IMAGE} | grep -C 2 "${OPERAND_IMAGE_URL}"
 
 echo "generating sqlite database"
 
-/usr/bin/initializer --manifests=/manifests --output=/bundle/bundles.db
+/usr/bin/initializer --manifests=/manifests --output=/bundle/bundles.db --permissive=true
 
