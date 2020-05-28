@@ -20,7 +20,7 @@ spec:
       containers:
         - name: clusterresourceoverride-operator
           image: CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           command:
             - /usr/bin/cluster-resource-override-admission-operator
           args:

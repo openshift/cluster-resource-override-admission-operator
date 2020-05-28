@@ -60,7 +60,7 @@ func (d *daemonset) New() *appsv1.DaemonSet {
 						{
 							Name:            d.Name(),
 							Image:           values.OperandImage,
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command: []string{
 								"/usr/bin/cluster-resource-override-admission",
 							},
