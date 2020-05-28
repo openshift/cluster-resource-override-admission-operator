@@ -3,7 +3,7 @@ FROM quay.io/operator-framework/upstream-registry-builder as builder
 ARG MANIFEST_LOCATION
 
 COPY ${MANIFEST_LOCATION} manifests/
-RUN /bin/initializer -o bundles.db
+RUN /bin/initializer -o bundles.db --permissive=true
 
 FROM scratch
 COPY --from=builder /build/bundles.db /bundles.db
