@@ -14,3 +14,5 @@ updates:
         replace: "currentCSV: clusterresourceoverride-operator.{FULL_VER}"
       - search: "currentCSV: clusterresourceoverride-operator.v4.5.0"
         replace: "currentCSV: clusterresourceoverride-operator.{FULL_VER}"
+      - search: "currentCSV: clusterresourceoverride-operator.v4.6.0"
+        replace: "currentCSV: clusterresourceoverride-operator.{FULL_VER}"

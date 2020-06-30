@@ -4,3 +4,5 @@ channels:
     currentCSV: clusterresourceoverride-operator.v4.4.0
   - name: "4.5"
     currentCSV: clusterresourceoverride-operator.v4.5.0
+  - name: "4.6"
+    currentCSV: clusterresourceoverride-operator.v4.6.0
