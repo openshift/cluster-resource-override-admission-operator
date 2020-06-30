@@ -2,7 +2,8 @@ FROM quay.io/operator-framework/upstream-registry-builder as builder
 
 ARG MANIFEST_LOCATION
 
-COPY ${MANIFEST_LOCATION} manifests/
+WORKDIR /
+COPY ${MANIFEST_LOCATION} /manifests
 RUN /bin/initializer -o bundles.db
 
 FROM scratch
@@ -11,6 +12,8 @@ COPY --from=builder /bin/registry-server /registry-server
 COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 
 EXPOSE 50051
+
+WORKDIR /bundle
 
 ENTRYPOINT ["/registry-server"]
 CMD ["--database", "bundles.db"]
