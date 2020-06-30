@@ -1,4 +1,4 @@
-FROM quay.io/operator-framework/upstream-registry-builder as registry-builder
+FROM quay.io/operator-framework/upstream-registry-builder:v1.12.5 as registry-builder
 
 # Since we will use an init container to mutate the CSV file, there is no point in
 # generating the sqlite db here.
