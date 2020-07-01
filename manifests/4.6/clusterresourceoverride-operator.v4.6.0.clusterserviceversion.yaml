@@ -6,21 +6,21 @@ metadata:
     capabilities: Seamless Upgrades
     categories: OpenShift Optional
     certifiedLevel: Primed
-    olm.skipRange: ">=4.3.0 <4.5.0"
-    containerImage: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.5
+    olm.skipRange: ">=4.3.0 <4.6.0"
+    containerImage: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.6
     createdAt: 2019/11/15
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating Admission Webhook Server
     healthIndex: B
     repository: https://github.com/openshift/cluster-resource-override-operator
     support: Red Hat
-  name: clusterresourceoverride-operator.v4.5.0
+  name: clusterresourceoverride-operator.v4.6.0
   namespace: clusterresourceoverride-operator
 spec:
   relatedImages:
-  - name: operator.v4.5
-    image: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.5
-  - name: operand.v4.5
-    image: quay.io/openshift/clusterresourceoverride-rhel7:4.5
+  - name: operator.v4.6
+    image: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.6
+  - name: operand.v4.6
+    image: quay.io/openshift/clusterresourceoverride-rhel7:4.6
   customresourcedefinitions:
     owned:
       - description: Represents an instance of ClusterResourceOverride Admission Webhook
@@ -283,7 +283,7 @@ spec:
                 serviceAccountName: clusterresourceoverride-operator
                 containers:
                   - name: clusterresourceoverride-operator
-                    image: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.5
+                    image: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.6
                     imagePullPolicy: Always
                     command:
                       - /usr/bin/cluster-resource-override-admission-operator
@@ -301,7 +301,7 @@ spec:
                           fieldRef:
                             fieldPath: metadata.namespace
                       - name: OPERAND_IMAGE
-                        value: quay.io/openshift/clusterresourceoverride-rhel7:4.5
+                        value: quay.io/openshift/clusterresourceoverride-rhel7:4.6
                       - name: OPERAND_VERSION
                         value: 1.0.0
                     ports:
@@ -331,7 +331,7 @@ spec:
     - efficiency
   labels:
     olm-owner-enterprise-app: clusterresourceoverride-operator
-    olm-status-descriptors: clusterresourceoverride-operator.v4.5.0
+    olm-status-descriptors: clusterresourceoverride-operator.v4.6.0
   maintainers:
     - email: support@redhat.com
       name: Red Hat
