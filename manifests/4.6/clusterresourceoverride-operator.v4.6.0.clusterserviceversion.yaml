@@ -16,11 +16,6 @@ metadata:
   name: clusterresourceoverride-operator.v4.6.0
   namespace: clusterresourceoverride-operator
 spec:
-  relatedImages:
-  - name: operator.v4.6
-    image: quay.io/openshift/clusterresourceoverride-rhel7-operator:4.6
-  - name: operand.v4.6
-    image: quay.io/openshift/clusterresourceoverride-rhel7:4.6
   customresourcedefinitions:
     owned:
       - description: Represents an instance of ClusterResourceOverride Admission Webhook
