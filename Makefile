@@ -18,8 +18,8 @@ VERSION := 4.6
 OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
 
-export OLD_OPERATOR_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel7-operator:$(VERSION)
-export OLD_OPERAND_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel7:$(VERSION)
+export OLD_OPERATOR_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8-operator:$(VERSION)
+export OLD_OPERAND_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8:$(VERSION)
 export CSV_FILE_PATH_IN_REGISTRY_IMAGE 	= /manifests/$(VERSION)/clusterresourceoverride-operator.v$(VERSION).0.clusterserviceversion.yaml
 
 LOCAL_OPERATOR_IMAGE	?= quay.io/redhat/clusterresourceoverride-operator:latest
