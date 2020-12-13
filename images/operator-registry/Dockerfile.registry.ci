@@ -1,4 +1,4 @@
-FROM quay.io/operator-framework/upstream-registry-builder as registry-builder
+FROM quay.io/operator-framework/upstream-registry-builder:v1.13.9 as registry-builder
 
 # Since we will use an init container to mutate the CSV file, there is no point in
 # generating the sqlite db here.
@@ -6,14 +6,14 @@ FROM quay.io/operator-framework/upstream-registry-builder as registry-builder
 # We only need the binaries from this image.
 
 
-FROM registry.svc.ci.openshift.org/openshift/release:golang-1.12 AS operator-builder
+FROM registry.svc.ci.openshift.org/openshift/release:golang-1.13 AS operator-builder
 
 WORKDIR /
 COPY hack/ /scripts
 COPY manifests/ /manifests
 
 # build operator registry image
-FROM registry.svc.ci.openshift.org/openshift/release:golang-1.12
+FROM registry.svc.ci.openshift.org/openshift/release:golang-1.13
 
 ARG VERSION
 
@@ -25,6 +25,7 @@ COPY --from=operator-builder /scripts/registry-init.sh /scripts/registry-init.sh
 
 # copy the manifests
 COPY --from=operator-builder /manifests /manifests
+RUN chmod ugo+rwx -R /manifests
 
 WORKDIR /bundle
 
