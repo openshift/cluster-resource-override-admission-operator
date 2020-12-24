@@ -62,12 +62,12 @@ e2e-olm-local: DEPLOY_MODE := local
 e2e-olm-local: deploy-olm-local e2e
 
 e2e-olm-ci: DEPLOY_MODE := ci
-e2e-olm-ci: KUBECTL=/tmp/shared/oc
+e2e-olm-ci: KUBECTL=$(shell which oc)
 e2e-olm-ci: deploy-olm-ci e2e
 
 # oc binary should be in test pod's /tmp/shared dir
 e2e-ci: DEPLOY_MODE := ci
-e2e-ci: KUBECTL=/tmp/shared/oc
+e2e-ci: KUBECTL=$(shell which oc)
 e2e-ci: deploy e2e
 
 e2e-local: DEPLOY_MODE=local
