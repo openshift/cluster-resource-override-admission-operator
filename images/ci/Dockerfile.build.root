@@ -2,4 +2,4 @@
 
 FROM openshift/origin-release:golang-1.15
 
-RUN GO111MODULE=on go get -mod=readonly github.com/mikefarah/yq/v2
+RUN GO111MODULE=on go get github.com/mikefarah/yq/v4
