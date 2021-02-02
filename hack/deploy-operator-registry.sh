@@ -35,7 +35,7 @@ ${KUBECTL} apply -n ${NAMESPACE} -f ${CONFIGMAP_FILE}
 echo "creating deployment" >&2
 OPERATOR_REGISTRY_DEPLOYMENT_FILE="${MANIFESTS}/registry-deployment.yaml"
 
-OPERATOR_REGISTRY_DEPLOYMENT_NAME=$(yq r ${OPERATOR_REGISTRY_DEPLOYMENT_FILE} metadata.name || echo "null")
+OPERATOR_REGISTRY_DEPLOYMENT_NAME=$(yq e '.metadata.name' ${OPERATOR_REGISTRY_DEPLOYMENT_FILE} || echo "null")
 if [ "${OPERATOR_REGISTRY_DEPLOYMENT_NAME}" == "null" ] || [ "${OPERATOR_REGISTRY_DEPLOYMENT_NAME}" == "" ]; then
   echo "could not retrieve Deployment name from ${OPERATOR_REGISTRY_DEPLOYMENT_FILE}" >&2
   exit 1
@@ -49,7 +49,7 @@ ${KUBECTL} -n ${NAMESPACE} rollout status -w deployment/${OPERATOR_REGISTRY_DEPL
 
 echo "creating service" >&2
 SERVICE_FILE="${MANIFESTS}/service.yaml"
-SERVICE_NAME=$(yq r ${SERVICE_FILE} metadata.name || echo "null")
+SERVICE_NAME=$(yq e '.metadata.name' ${SERVICE_FILE} || echo "null")
 if [ "${SERVICE_NAME}" == "null" ] || [ "${SERVICE_NAME}" == "" ]; then
   echo "could not retrieve Service name from ${SERVICE_FILE}" >&2
   exit 1
