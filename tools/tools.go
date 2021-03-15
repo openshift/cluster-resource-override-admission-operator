@@ -1,3 +1,5 @@
+// +build tools
+
 package tools
 
 // This package contains import references to packages required only for the
@@ -11,4 +13,5 @@ import (
 	//"sigs.k8s.io/controller-tools/cmd/controller-gen"
 
 	_ "github.com/openshift/library-go/alpha-build-machinery"
+	_ "k8s.io/code-generator"
 )

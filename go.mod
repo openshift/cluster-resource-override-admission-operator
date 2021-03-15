@@ -3,7 +3,6 @@ module github.com/openshift/cluster-resource-override-admission-operator
 go 1.12
 
 require (
-	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/openshift/library-go v0.0.0-20191118102510-4e2c7112d252
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
@@ -15,6 +14,7 @@ require (
 	k8s.io/apimachinery v0.0.0-20191109100837-dffb012825f2
 	k8s.io/apiserver v0.0.0-20191109104008-f2672160bdbe
 	k8s.io/client-go v0.0.0-20191109102209-3c0d1af94be5
+	k8s.io/code-generator v0.0.0-20191109100332-a9a0d9c0b3aa
 	k8s.io/component-base v0.0.0-20191109103431-7fd2da093d6d
 	k8s.io/klog v1.0.0
 	k8s.io/kube-aggregator v0.0.0-20191109104959-a1b02ed9435a
