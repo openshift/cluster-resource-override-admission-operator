@@ -53,7 +53,7 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1beta1.Mutat
 					},
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{
-							Key:      "runlevel",
+							Key:      "openshift.io/run-level",
 							Operator: metav1.LabelSelectorOpNotIn,
 							Values: []string{
 								"0",
