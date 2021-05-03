@@ -1,9 +1,11 @@
 package e2e
 
 import (
-	"github.com/stretchr/testify/require"
+	"context"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -374,7 +376,7 @@ func TestClusterResourceOverrideAdmissionWithCertRotation(t *testing.T) {
 	require.NotEmpty(t, originalCertHash)
 
 	current.Status.CertsRotateAt = metav1.NewTime(time.Now())
-	current, err := client.Operator.AutoscalingV1().ClusterResourceOverrides().UpdateStatus(current)
+	current, err := client.Operator.AutoscalingV1().ClusterResourceOverrides().UpdateStatus(context.TODO(), current, metav1.UpdateOptions{})
 	require.NoError(t, err)
 
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, true))

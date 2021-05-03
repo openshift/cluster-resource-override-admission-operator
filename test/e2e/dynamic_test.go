@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -75,7 +76,7 @@ func TestDynamicClient(t *testing.T) {
 	require.NotNil(t, dynamic)
 
 	// ensure that this deployment does not exist.
-	_, err = client.Kubernetes.AppsV1().Deployments(namespace).Get(name, metav1.GetOptions{})
+	_, err = client.Kubernetes.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	require.Truef(t, k8serrors.IsNotFound(err), "precondition failed - Deployment=%s/%s already exists", namespace, name)
 
 	// scenario 1: does not exist, create only.
@@ -84,7 +85,7 @@ func TestDynamicClient(t *testing.T) {
 	require.NotNil(t, objectGot)
 
 	defer func() {
-		err := client.Kubernetes.AppsV1().Deployments(namespace).Delete(name, &metav1.DeleteOptions{})
+		err := client.Kubernetes.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 		require.NoError(t, err)
 	}()
 
@@ -98,7 +99,7 @@ func TestDynamicClient(t *testing.T) {
 	require.NoError(t, errGot)
 	require.NotNil(t, objectGot)
 
-	current, err := client.Kubernetes.AppsV1().Deployments(namespace).Get(name, metav1.GetOptions{})
+	current, err := client.Kubernetes.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.True(t, current.Annotations["annotation1"] == "value1", "original annotation not preserved")
 	require.True(t, current.Annotations["annotation2"] == "value2", "new annotation not applied")

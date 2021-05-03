@@ -1,12 +1,14 @@
 package helper
 
 import (
+	"context"
+	"testing"
+
 	"github.com/stretchr/testify/require"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"testing"
 )
 
 const (
@@ -19,7 +21,7 @@ type PreCondition struct {
 
 func (f *PreCondition) MustHaveAdmissionRegistrationV1beta1(t *testing.T) {
 	apiGroupList := &metav1.APIGroupList{}
-	err := f.Client.Discovery().RESTClient().Get().AbsPath("/apis").Do().Into(apiGroupList)
+	err := f.Client.Discovery().RESTClient().Get().AbsPath("/apis").Do(context.TODO()).Into(apiGroupList)
 	require.NoError(t, err, "fetching /apis")
 
 	t.Log("finding the admissionregistration.k8s.io API group in the /apis discovery document")
@@ -49,7 +51,7 @@ func (f *PreCondition) MustHaveAdmissionRegistrationV1beta1(t *testing.T) {
 func (f *PreCondition) MustHaveClusterResourceOverrideAdmissionConfiguration(t *testing.T) {
 	t.Logf("fetching MutatingWebhookConfigurations %s", webhookName)
 
-	configuration, err := f.Client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(webhookName, metav1.GetOptions{})
+	configuration, err := f.Client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), webhookName, metav1.GetOptions{})
 
 	require.NoErrorf(t, err, "MutatingWebhookConfiguration %s resource not found in /apis/admissionregistration.k8s.io/v1beta1 discovery document", webhookName)
 	require.NotNil(t, configuration)

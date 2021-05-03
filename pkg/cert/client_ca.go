@@ -1,8 +1,10 @@
 package cert
 
 import (
+	"context"
 	"errors"
 	"fmt"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -27,7 +29,7 @@ func GetClientCA(client kubernetes.Interface) (clientCA []byte, err error) {
 		err = errors.New("no client specified")
 	}
 
-	configmap, getErr := client.CoreV1().ConfigMaps(authConfigNamespace).Get(authConfigName, metav1.GetOptions{})
+	configmap, getErr := client.CoreV1().ConfigMaps(authConfigNamespace).Get(context.TODO(), authConfigName, metav1.GetOptions{})
 	if getErr != nil {
 		if k8serrors.IsForbidden(getErr) {
 			err = fmt.Errorf("Unable to get configmap/%s in %s.  Usually fixed by 'kubectl create rolebinding -n %s ROLEBINDING_NAME --role=%s --serviceaccount=YOUR_NS:YOUR_SA'",

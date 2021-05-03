@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/reference"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
@@ -8,6 +10,7 @@ import (
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/ensurer"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -29,13 +32,13 @@ type serviceCertSecretHandler struct {
 	asset   *asset.Asset
 }
 
-func (c *serviceCertSecretHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (c *serviceCertSecretHandler) Handle(ctx *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
 	// Make sure that we have all certs generated
 	secretName := c.asset.ServiceServingSecret().Name()
 
-	object, err := c.lister.CoreV1SecretLister().Secrets(context.WebhookNamespace()).Get(secretName)
+	object, err := c.lister.CoreV1SecretLister().Secrets(ctx.WebhookNamespace()).Get(secretName)
 	if err != nil {
 		handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
 
@@ -60,7 +63,7 @@ func (c *serviceCertSecretHandler) Handle(context *ReconcileRequestContext, orig
 		}
 
 		copy.Annotations[values.OwnerAnnotationKey] = original.Name
-		updated, updateErr := c.client.CoreV1().Secrets(context.WebhookNamespace()).Update(copy)
+		updated, updateErr := c.client.CoreV1().Secrets(ctx.WebhookNamespace()).Update(context.TODO(), copy, metav1.UpdateOptions{})
 		if updateErr != nil {
 			handleErr = updateErr
 			return

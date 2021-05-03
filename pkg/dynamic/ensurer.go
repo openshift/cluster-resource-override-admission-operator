@@ -1,7 +1,9 @@
 package dynamic
 
 import (
+	"context"
 	"fmt"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	unstructuredv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -42,7 +44,7 @@ func (c *client) Ensure(resource string, object runtime.Object) (current *unstru
 	kind := modified.GetKind()
 	client := c.resource(resource, modified)
 
-	created, createErr := client.Create(modified, metav1.CreateOptions{})
+	created, createErr := client.Create(context.TODO(), modified, metav1.CreateOptions{})
 	if createErr == nil {
 		current = created
 		return
@@ -53,7 +55,7 @@ func (c *client) Ensure(resource string, object runtime.Object) (current *unstru
 		return
 	}
 
-	original, getErr := client.Get(modified.GetName(), metav1.GetOptions{})
+	original, getErr := client.Get(context.TODO(), modified.GetName(), metav1.GetOptions{})
 	if getErr != nil {
 		err = fmt.Errorf("failed to retrieve %s - %s", kind, getErr.Error())
 		return
@@ -67,7 +69,7 @@ func (c *client) Ensure(resource string, object runtime.Object) (current *unstru
 		err = fmt.Errorf("failed to generate patch %s - %s", kind, patchErr.Error())
 	}
 
-	current, err = client.Patch(modified.GetName(), types.StrategicMergePatchType, bytes, metav1.PatchOptions{})
+	current, err = client.Patch(context.TODO(), modified.GetName(), types.StrategicMergePatchType, bytes, metav1.PatchOptions{})
 	return
 }
 

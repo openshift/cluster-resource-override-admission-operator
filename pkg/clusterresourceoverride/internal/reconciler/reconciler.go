@@ -2,7 +2,7 @@ package reconciler
 
 import (
 	"fmt"
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling"
+
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/handlers"
 	dynamicclient "github.com/openshift/cluster-resource-override-admission-operator/pkg/dynamic"
@@ -17,7 +17,7 @@ import (
 
 var (
 	ClusterResourceOverrideGVK = schema.GroupVersionKind{
-		Group:   autoscaling.GroupName,
+		Group:   autoscalingv1.GroupName,
 		Version: autoscalingv1.GroupVersion,
 		Kind:    autoscalingv1.ClusterResourceOverrideKind,
 	}

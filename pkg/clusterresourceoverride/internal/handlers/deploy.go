@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -93,19 +94,19 @@ func (c *daemonSetHandler) Handle(context *ReconcileRequestContext, original *au
 	return
 }
 
-func (c *daemonSetHandler) Ensure(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) (current runtime.Object, accessor metav1.Object, err error) {
+func (c *daemonSetHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) (current runtime.Object, accessor metav1.Object, err error) {
 	name := c.asset.NewMutatingWebhookConfiguration().Name()
-	if deleteErr := c.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(name, &metav1.DeleteOptions{}); deleteErr != nil && !k8serrors.IsNotFound(deleteErr) {
+	if deleteErr := c.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{}); deleteErr != nil && !k8serrors.IsNotFound(deleteErr) {
 		err = fmt.Errorf("failed to delete MutatingWebhookConfiguration - %s", deleteErr.Error())
 		return
 	}
 
-	if err = c.EnsureRBAC(context, cro); err != nil {
+	if err = c.EnsureRBAC(ctx, cro); err != nil {
 		return
 	}
 
-	parent := c.ApplyToDeploymentObject(context, cro)
-	child := c.ApplyToToPodTemplate(context, cro)
+	parent := c.ApplyToDeploymentObject(ctx, cro)
+	child := c.ApplyToToPodTemplate(ctx, cro)
 	current, accessor, err = c.deploy.Ensure(parent, child)
 	return
 }

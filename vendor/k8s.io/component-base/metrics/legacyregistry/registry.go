@@ -29,6 +29,18 @@ var (
 	defaultRegistry = metrics.NewKubeRegistry()
 	// DefaultGatherer exposes the global registry gatherer
 	DefaultGatherer metrics.Gatherer = defaultRegistry
+	// Reset calls reset on the global registry
+	Reset = defaultRegistry.Reset
+	// MustRegister registers registerable metrics but uses the global registry.
+	MustRegister = defaultRegistry.MustRegister
+	// RawMustRegister registers prometheus collectors but uses the global registry, this
+	// bypasses the metric stability framework
+	//
+	// Deprecated
+	RawMustRegister = defaultRegistry.RawMustRegister
+
+	// Register registers a collectable metric but uses the global registry
+	Register = defaultRegistry.Register
 )
 
 func init() {
@@ -46,44 +58,12 @@ func Handler() http.Handler {
 	return promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(defaultRegistry, promhttp.HandlerOpts{}))
 }
 
-// Register registers a collectable metric but uses the global registry
-func Register(c metrics.Registerable) error {
-	err := defaultRegistry.Register(c)
-	// sideload global prom registry as fallback
-	prometheus.Register(c)
-	return err
-}
-
-// MustRegister registers registerable metrics but uses the global registry.
-func MustRegister(cs ...metrics.Registerable) {
-	defaultRegistry.MustRegister(cs...)
-	// sideload global prom registry as fallback
-	for _, c := range cs {
-		prometheus.Register(c)
-	}
-}
-
-// RawMustRegister registers prometheus collectors but uses the global registry, this
-// bypasses the metric stability framework
-//
-// Deprecated
-func RawMustRegister(cs ...prometheus.Collector) {
-	defaultRegistry.RawMustRegister(cs...)
-	// sideload global prom registry as fallback
-	for _, c := range cs {
-		prometheus.Register(c)
-	}
-}
-
-// RawRegister registers a prometheus collector but uses the global registry, this
-// bypasses the metric stability framework
-//
-// Deprecated
-func RawRegister(c prometheus.Collector) error {
-	err := defaultRegistry.RawRegister(c)
-	// sideload global prom registry as fallback
-	prometheus.Register(c)
-	return err
+// HandlerWithReset returns an HTTP handler for the DefaultGatherer but invokes
+// registry reset if the http method is DELETE.
+func HandlerWithReset() http.Handler {
+	return promhttp.InstrumentMetricHandler(
+		prometheus.DefaultRegisterer,
+		metrics.HandlerWithReset(defaultRegistry, metrics.HandlerOpts{}))
 }
 
 // CustomRegister registers a custom collector but uses the global registry.
