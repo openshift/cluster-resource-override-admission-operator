@@ -19,6 +19,7 @@ limitations under the License.
 package v1
 
 import (
+	"context"
 	time "time"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
@@ -60,13 +61,13 @@ func NewFilteredClusterResourceOverrideInformer(client versioned.Interface, resy
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AutoscalingV1().ClusterResourceOverrides().List(options)
+				return client.AutoscalingV1().ClusterResourceOverrides().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AutoscalingV1().ClusterResourceOverrides().Watch(options)
+				return client.AutoscalingV1().ClusterResourceOverrides().Watch(context.TODO(), options)
 			},
 		},
 		&autoscalingv1.ClusterResourceOverride{},

@@ -1,10 +1,12 @@
 package clusterresourceoverride
 
 import (
+	"context"
 	"errors"
+	"time"
+
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/deploy"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/ensurer"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,11 +48,11 @@ func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, 
 	client := options.Client.Operator
 	watcher := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			return client.AutoscalingV1().ClusterResourceOverrides().List(options)
+			return client.AutoscalingV1().ClusterResourceOverrides().List(context.TODO(), options)
 		},
 
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return client.AutoscalingV1().ClusterResourceOverrides().Watch(options)
+			return client.AutoscalingV1().ClusterResourceOverrides().Watch(context.TODO(), options)
 		},
 	}
 

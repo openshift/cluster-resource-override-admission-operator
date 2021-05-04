@@ -3,7 +3,7 @@ package asset
 import (
 	"fmt"
 
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling"
+	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 )
 
@@ -22,9 +22,9 @@ func New(context runtime.OperandContext) *Asset {
 		SelectorLabelKey:               "clusterresourceoverride",
 		SelectorLabelValue:             "true",
 		ConfigurationKey:               "configuration.yaml",
-		ConfigurationHashAnnotationKey: fmt.Sprintf("%s.%s/configuration.hash", context.WebhookName(), autoscaling.GroupName),
-		ServingCertHashAnnotationKey:   fmt.Sprintf("%s.%s/servingcert.hash", context.WebhookName(), autoscaling.GroupName),
-		OwnerAnnotationKey:             fmt.Sprintf("%s.%s/owner", context.WebhookName(), autoscaling.GroupName),
+		ConfigurationHashAnnotationKey: fmt.Sprintf("%s.%s/configuration.hash", context.WebhookName(), autoscalingv1.GroupName),
+		ServingCertHashAnnotationKey:   fmt.Sprintf("%s.%s/servingcert.hash", context.WebhookName(), autoscalingv1.GroupName),
+		OwnerAnnotationKey:             fmt.Sprintf("%s.%s/owner", context.WebhookName(), autoscalingv1.GroupName),
 	}
 
 	return &Asset{

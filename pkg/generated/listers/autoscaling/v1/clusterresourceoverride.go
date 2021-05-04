@@ -26,10 +26,13 @@ import (
 )
 
 // ClusterResourceOverrideLister helps list ClusterResourceOverrides.
+// All objects returned here must be treated as read-only.
 type ClusterResourceOverrideLister interface {
 	// List lists all ClusterResourceOverrides in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.ClusterResourceOverride, err error)
 	// Get retrieves the ClusterResourceOverride from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.ClusterResourceOverride, error)
 	ClusterResourceOverrideListerExpansion
 }

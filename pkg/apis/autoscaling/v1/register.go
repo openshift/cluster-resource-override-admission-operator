@@ -1,24 +1,20 @@
 package v1
 
 import (
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
+	// GroupName
+	GroupName = "operator.autoscaling.openshift.io"
 	// GroupVersion is the group version used in this package.
 	GroupVersion = "v1"
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: autoscaling.GroupName, Version: GroupVersion}
-
-// Kind takes an unqualified kind and returns back a Group qualified GroupKind
-func Kind(kind string) schema.GroupKind {
-	return SchemeGroupVersion.WithKind(kind).GroupKind()
-}
+var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 
 // Resource takes an unqualified resource and returns a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {

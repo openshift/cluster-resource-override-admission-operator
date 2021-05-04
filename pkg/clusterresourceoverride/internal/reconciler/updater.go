@@ -1,10 +1,12 @@
 package reconciler
 
 import (
+	"context"
 	"reflect"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // StatusUpdater updates the status of a ClusterResourceOverride resource.
@@ -20,6 +22,6 @@ func (u *StatusUpdater) Update(observed, desired *autoscalingv1.ClusterResourceO
 		return nil
 	}
 
-	_, err := u.client.AutoscalingV1().ClusterResourceOverrides().UpdateStatus(desired)
+	_, err := u.client.AutoscalingV1().ClusterResourceOverrides().UpdateStatus(context.TODO(), desired, metav1.UpdateOptions{})
 	return err
 }

@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -62,7 +63,7 @@ func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 	}
 
 	var err error
-	current, err = client.AutoscalingV1().ClusterResourceOverrides().Create(&cluster)
+	current, err = client.AutoscalingV1().ClusterResourceOverrides().Create(context.TODO(), &cluster, metav1.CreateOptions{})
 	if err == nil {
 		return
 	}
@@ -71,7 +72,7 @@ func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 		require.FailNowf(t, "unexpected error - %s", err.Error())
 	}
 
-	current, err = client.AutoscalingV1().ClusterResourceOverrides().Get("cluster", metav1.GetOptions{})
+	current, err = client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	require.NoErrorf(t, err, "failed to get - %v", err)
 	require.NotNil(t, current)
 
@@ -82,14 +83,14 @@ func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 	}
 
 	current.Spec.PodResourceOverride = *override.DeepCopy()
-	current, err = client.AutoscalingV1().ClusterResourceOverrides().Update(current)
+	current, err = client.AutoscalingV1().ClusterResourceOverrides().Update(context.TODO(), current, metav1.UpdateOptions{})
 	require.NoErrorf(t, err, "failed to update - %v", err)
 	require.NotNil(t, current)
 	return
 }
 
 func RemoveAdmissionWebhook(t *testing.T, client versioned.Interface, name string) {
-	_, err := client.AutoscalingV1().ClusterResourceOverrides().Get(name, metav1.GetOptions{})
+	_, err := client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			require.FailNowf(t, "unexpected error - %s", err.Error())
@@ -98,7 +99,7 @@ func RemoveAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 		return
 	}
 
-	err = client.AutoscalingV1().ClusterResourceOverrides().Delete(name, &metav1.DeleteOptions{})
+	err = client.AutoscalingV1().ClusterResourceOverrides().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	require.NoError(t, err)
 }
 
@@ -115,13 +116,13 @@ func NewNamespace(t *testing.T, client kubernetes.Interface, name string, optIn 
 		}
 	}
 
-	object, err := client.CoreV1().Namespaces().Create(request)
+	object, err := client.CoreV1().Namespaces().Create(context.TODO(), request, metav1.CreateOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, object)
 
 	ns = object
 	disposer = func() {
-		err := client.CoreV1().Namespaces().Delete(object.Name, &metav1.DeleteOptions{})
+		err := client.CoreV1().Namespaces().Delete(context.TODO(), object.Name, metav1.DeleteOptions{})
 		require.NoError(t, err)
 	}
 	return
@@ -135,13 +136,13 @@ func NewPod(t *testing.T, client kubernetes.Interface, namespace string, spec co
 		Spec: spec,
 	}
 
-	object, err := client.CoreV1().Pods(namespace).Create(request)
+	object, err := client.CoreV1().Pods(namespace).Create(context.TODO(), request, metav1.CreateOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, object)
 
 	pod = object
 	disposer = func() {
-		err := client.CoreV1().Pods(object.Namespace).Delete(object.Name, &metav1.DeleteOptions{})
+		err := client.CoreV1().Pods(object.Namespace).Delete(context.TODO(), object.Name, metav1.DeleteOptions{})
 		require.NoError(t, err)
 	}
 	return
@@ -169,20 +170,20 @@ func NewPodWithResourceRequirement(t *testing.T, client kubernetes.Interface, na
 		},
 	}
 
-	object, err := client.CoreV1().Pods(namespace).Create(request)
+	object, err := client.CoreV1().Pods(namespace).Create(context.TODO(), request, metav1.CreateOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, object)
 
 	pod = object
 	disposer = func() {
-		err := client.CoreV1().Pods(object.Namespace).Delete(object.Name, &metav1.DeleteOptions{})
+		err := client.CoreV1().Pods(object.Namespace).Delete(context.TODO(), object.Name, metav1.DeleteOptions{})
 		require.NoError(t, err)
 	}
 	return
 }
 
 func GetClusterResourceOverride(t *testing.T, client versioned.Interface, name string) *autoscalingv1.ClusterResourceOverride {
-	current, err := client.AutoscalingV1().ClusterResourceOverrides().Get(name, metav1.GetOptions{})
+	current, err := client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, current)
 
@@ -191,7 +192,7 @@ func GetClusterResourceOverride(t *testing.T, client versioned.Interface, name s
 
 func Wait(t *testing.T, client versioned.Interface, name string, f ConditionFunc) (override *autoscalingv1.ClusterResourceOverride) {
 	err := wait.Poll(WaitInterval, WaitTimeout, func() (done bool, err error) {
-		override, err = client.AutoscalingV1().ClusterResourceOverrides().Get(name, metav1.GetOptions{})
+		override, err = client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			return
 		}
@@ -310,12 +311,12 @@ func NewLimitRanges(t *testing.T, client kubernetes.Interface, namespace string,
 		Spec: spec,
 	}
 
-	object, err := client.CoreV1().LimitRanges(namespace).Create(&request)
+	object, err := client.CoreV1().LimitRanges(namespace).Create(context.TODO(), &request, metav1.CreateOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, object)
 
 	disposer = func() {
-		err := client.CoreV1().LimitRanges(object.Namespace).Delete(object.Name, &metav1.DeleteOptions{})
+		err := client.CoreV1().LimitRanges(object.Namespace).Delete(context.TODO(), object.Name, metav1.DeleteOptions{})
 		require.NoError(t, err)
 	}
 	return

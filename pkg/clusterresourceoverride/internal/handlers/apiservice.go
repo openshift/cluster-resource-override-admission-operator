@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/reference"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
@@ -27,11 +29,11 @@ type apiServiceHandler struct {
 	asset   *asset.Asset
 }
 
-func (a *apiServiceHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
 	name := a.asset.APIService().Name()
-	object, err := a.client.ApiregistrationV1().APIServices().Get(name, metav1.GetOptions{})
+	object, err := a.client.ApiregistrationV1().APIServices().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			handleErr = condition.NewInstallReadinessError(autoscalingv1.AdmissionWebhookNotAvailable, err)
@@ -40,8 +42,8 @@ func (a *apiServiceHandler) Handle(context *ReconcileRequestContext, original *a
 
 		// No APIService object
 		object := a.asset.APIService().New()
-		object.Spec.CABundle = context.GetBundle().ServingCertCA
-		context.ControllerSetter().Set(object, original)
+		object.Spec.CABundle = ctx.GetBundle().ServingCertCA
+		ctx.ControllerSetter().Set(object, original)
 
 		apiservice, err := a.ensurer.Ensure(object)
 		if err != nil {
