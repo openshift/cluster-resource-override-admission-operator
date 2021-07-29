@@ -13,6 +13,8 @@ metadata:
     healthIndex: B
     repository: https://github.com/openshift/cluster-resource-override-operator
     support: Red Hat
+  labels:
+    operatorframework.io/arch.amd64: supported
   name: clusterresourceoverride-operator.v4.9.0
   namespace: clusterresourceoverride-operator
 spec:
