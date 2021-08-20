@@ -67,7 +67,6 @@ func (d *daemonset) New() *appsv1.DaemonSet {
 							Args: []string{
 								"--secure-port=9400",
 								"--bind-address=127.0.0.1",
-								"--audit-log-path=-",
 								"--tls-cert-file=/var/serving-cert/tls.crt",
 								"--tls-private-key-file=/var/serving-cert/tls.key",
 								"--v=3",

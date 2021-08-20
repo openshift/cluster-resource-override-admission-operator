@@ -1,7 +1,7 @@
 package secondarywatch
 
 import (
-	admissionregistrationv1beta1 "k8s.io/client-go/listers/admissionregistration/v1beta1"
+	admissionregistrationv1 "k8s.io/client-go/listers/admissionregistration/v1"
 	listersappsv1 "k8s.io/client-go/listers/apps/v1"
 	listerscorev1 "k8s.io/client-go/listers/core/v1"
 )
@@ -15,7 +15,7 @@ type Lister struct {
 	service        listerscorev1.ServiceLister
 	secret         listerscorev1.SecretLister
 	serviceaccount listerscorev1.ServiceAccountLister
-	webhook        admissionregistrationv1beta1.MutatingWebhookConfigurationLister
+	webhook        admissionregistrationv1.MutatingWebhookConfigurationLister
 }
 
 func (l *Lister) CoreV1ConfigMapLister() listerscorev1.ConfigMapLister {
@@ -38,6 +38,6 @@ func (l *Lister) AppsV1DaemonSetLister() listersappsv1.DaemonSetLister {
 	return l.daemonset
 }
 
-func (l *Lister) AdmissionRegistrationV1beta1MutatingWebhookConfigurationLister() admissionregistrationv1beta1.MutatingWebhookConfigurationLister {
+func (l *Lister) AdmissionRegistrationV1MutatingWebhookConfigurationLister() admissionregistrationv1.MutatingWebhookConfigurationLister {
 	return l.webhook
 }

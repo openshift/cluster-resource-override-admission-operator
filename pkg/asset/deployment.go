@@ -28,7 +28,7 @@ func (d *deployment) New() *appsv1.Deployment {
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
-			APIVersion: "extensions/v1beta1",
+			APIVersion: "extensions/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: values.Namespace,
@@ -60,7 +60,6 @@ func (d *deployment) New() *appsv1.Deployment {
 							ImagePullPolicy: corev1.PullAlways,
 							Args: []string{
 								"--secure-port=8443",
-								"--audit-log-path=-",
 								"--tls-cert-file=/var/serving-cert/tls.crt",
 								"--tls-private-key-file=/var/serving-cert/tls.key",
 								"--v=8",
