@@ -3,7 +3,7 @@ package asset
 import (
 	"fmt"
 
-	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,18 +25,18 @@ func (m *mutatingWebhookConfiguration) Name() string {
 	return fmt.Sprintf("%s.%s", m.values.AdmissionAPIResource, m.values.AdmissionAPIGroup)
 }
 
-func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1beta1.MutatingWebhookConfiguration {
+func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1.MutatingWebhookConfiguration {
 	url := fmt.Sprintf("https://localhost:9400/apis/%s/%s/%s", m.values.AdmissionAPIGroup, m.values.AdmissionAPIVersion, m.values.AdmissionAPIResource)
-	policy := admissionregistrationv1beta1.Fail
-	matchPolicy := admissionregistrationv1beta1.Equivalent
+	policy := admissionregistrationv1.Fail
+	matchPolicy := admissionregistrationv1.Equivalent
 	namespaceMatchLabelKey := fmt.Sprintf("%s.%s/enabled", m.values.AdmissionAPIResource, m.values.AdmissionAPIGroup)
 	timeoutSeconds := int32(5)
-	sideEffects := admissionregistrationv1beta1.SideEffectClassNone
-	reinvoke := admissionregistrationv1beta1.IfNeededReinvocationPolicy
-	return &admissionregistrationv1beta1.MutatingWebhookConfiguration{
+	sideEffects := admissionregistrationv1.SideEffectClassNone
+	reinvoke := admissionregistrationv1.IfNeededReinvocationPolicy
+	return &admissionregistrationv1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MutatingWebhookConfiguration",
-			APIVersion: "admissionregistration.k8s.io/v1beta1",
+			APIVersion: "admissionregistration.k8s.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: m.Name(),
@@ -44,7 +44,7 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1beta1.Mutat
 				m.values.OwnerLabelKey: m.values.OwnerLabelValue,
 			},
 		},
-		Webhooks: []admissionregistrationv1beta1.MutatingWebhook{
+		Webhooks: []admissionregistrationv1.MutatingWebhook{
 			{
 				Name: m.Name(),
 				NamespaceSelector: &metav1.LabelSelector{
@@ -63,19 +63,19 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1beta1.Mutat
 					},
 				},
 				MatchPolicy: &matchPolicy,
-				ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
+				ClientConfig: admissionregistrationv1.WebhookClientConfig{
 					// CABundle will be injected at runtime
 					CABundle: nil,
 					URL:      &url,
 				},
-				Rules: []admissionregistrationv1beta1.RuleWithOperations{
+				Rules: []admissionregistrationv1.RuleWithOperations{
 					{
-						Operations: []admissionregistrationv1beta1.OperationType{
-							admissionregistrationv1beta1.Create,
-							admissionregistrationv1beta1.Update,
+						Operations: []admissionregistrationv1.OperationType{
+							admissionregistrationv1.Create,
+							admissionregistrationv1.Update,
 						},
 
-						Rule: admissionregistrationv1beta1.Rule{
+						Rule: admissionregistrationv1.Rule{
 							APIGroups: []string{
 								"",
 							},
@@ -88,10 +88,11 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1beta1.Mutat
 						},
 					},
 				},
-				FailurePolicy:      &policy,
-				TimeoutSeconds:     &timeoutSeconds,
-				SideEffects:        &sideEffects,
-				ReinvocationPolicy: &reinvoke,
+				FailurePolicy:           &policy,
+				TimeoutSeconds:          &timeoutSeconds,
+				SideEffects:             &sideEffects,
+				ReinvocationPolicy:      &reinvoke,
+				AdmissionReviewVersions: []string{"v1beta1", "v1"},
 			},
 		},
 	}

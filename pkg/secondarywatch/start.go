@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"reflect"
 
+	"time"
+
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 	"k8s.io/client-go/informers"
-	"time"
 )
 
 type Options struct {
@@ -37,7 +38,7 @@ func New(options *Options) (lister *Lister, startFunc StarterFunc) {
 	service := factory.Core().V1().Services()
 	secret := factory.Core().V1().Secrets()
 	serviceaccount := factory.Core().V1().ServiceAccounts()
-	webhook := factory.Admissionregistration().V1beta1().MutatingWebhookConfigurations()
+	webhook := factory.Admissionregistration().V1().MutatingWebhookConfigurations()
 
 	startFunc = func(enqueuer runtime.Enqueuer, shutdown context.Context) error {
 		handler := newResourceEventHandler(enqueuer)

@@ -31,7 +31,7 @@ func (w *webhookConfigurationHandler) Handle(context *ReconcileRequestContext, o
 	ensure := false
 
 	name := w.asset.NewMutatingWebhookConfiguration().Name()
-	object, err := w.lister.AdmissionRegistrationV1beta1MutatingWebhookConfigurationLister().Get(name)
+	object, err := w.lister.AdmissionRegistrationV1MutatingWebhookConfigurationLister().Get(name)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)

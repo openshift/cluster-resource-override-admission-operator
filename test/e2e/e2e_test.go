@@ -239,7 +239,7 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
 	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1beta1(t)
+	f.MustHaveAdmissionRegistrationV1(t)
 
 	// ensure we have the webhook up and running with the desired config
 	configuration := autoscalingv1.PodResourceOverrideSpec{
@@ -288,7 +288,7 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
 	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1beta1(t)
+	f.MustHaveAdmissionRegistrationV1(t)
 
 	before := autoscalingv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     100,
@@ -356,7 +356,7 @@ func TestClusterResourceOverrideAdmissionWithCertRotation(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
 	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1beta1(t)
+	f.MustHaveAdmissionRegistrationV1(t)
 
 	configuration := autoscalingv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     50,
@@ -418,7 +418,7 @@ func TestClusterResourceOverrideAdmissionWithNoOptIn(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
 	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1beta1(t)
+	f.MustHaveAdmissionRegistrationV1(t)
 
 	configuration := autoscalingv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     200,

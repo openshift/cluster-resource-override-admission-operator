@@ -96,7 +96,7 @@ func (c *daemonSetHandler) Handle(context *ReconcileRequestContext, original *au
 
 func (c *daemonSetHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) (current runtime.Object, accessor metav1.Object, err error) {
 	name := c.asset.NewMutatingWebhookConfiguration().Name()
-	if deleteErr := c.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{}); deleteErr != nil && !k8serrors.IsNotFound(deleteErr) {
+	if deleteErr := c.client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{}); deleteErr != nil && !k8serrors.IsNotFound(deleteErr) {
 		err = fmt.Errorf("failed to delete MutatingWebhookConfiguration - %s", deleteErr.Error())
 		return
 	}
