@@ -137,6 +137,16 @@ spec:
             - update
             - patch
             - get
+        # Operator must have these privs so that it can grant them to the operand
+        - apiGroups:
+            - flowcontrol.apiserver.k8s.io
+          resources:
+            - flowschemas
+            - prioritylevelconfigurations
+          verbs:
+            - get
+            - list
+            - watch
 
         # to have the power to read configmaps in the kube-system namespace
         - apiGroups:
