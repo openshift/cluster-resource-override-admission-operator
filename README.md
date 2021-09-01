@@ -119,7 +119,7 @@ status:
       resourceVersion: "78676"
       uid: 947ebfc5-c244-4621-acc3-c3117a10a97b
     mutatingWebhookConfigurationRef:
-      apiVersion: admissionregistration.k8s.io/v1beta1
+      apiVersion: admissionregistration.k8s.io/v1
       kind: MutatingWebhookConfiguration
       name: clusterresourceoverrides.admission.autoscaling.openshift.io
       resourceVersion: "127621"

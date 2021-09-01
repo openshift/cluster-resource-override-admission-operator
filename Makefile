@@ -35,7 +35,7 @@ include $(addprefix ./vendor/github.com/openshift/library-go/alpha-build-machine
 )
 
 # build image for ci
-CI_IMAGE_REGISTRY ?=registry.svc.ci.openshift.org
+CI_IMAGE_REGISTRY ?=registry.ci.openshift.org
 $(call build-image,clusterresourceoverride-operator,$(CI_IMAGE_REGISTRY)/autoscaling/clusterresourceoverride-operator,./images/ci/Dockerfile,.)
 
 REGISTRY_SETUP_BINARY := bin/registry-setup
