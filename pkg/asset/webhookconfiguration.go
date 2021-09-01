@@ -92,7 +92,7 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1.MutatingWe
 				TimeoutSeconds:          &timeoutSeconds,
 				SideEffects:             &sideEffects,
 				ReinvocationPolicy:      &reinvoke,
-				AdmissionReviewVersions: []string{"v1beta1", "v1"},
+				AdmissionReviewVersions: []string{"v1"},
 			},
 		},
 	}
