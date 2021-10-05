@@ -11,7 +11,7 @@ metadata:
     createdAt: 2019/11/15
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating Admission Webhook Server
     healthIndex: B
-    repository: https://github.com/openshift/cluster-resource-override-operator
+    repository: https://github.com/openshift/cluster-resource-override-admission-operator
     support: Red Hat
   labels:
     operatorframework.io/arch.amd64: supported
