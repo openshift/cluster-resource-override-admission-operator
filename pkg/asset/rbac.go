@@ -2,6 +2,7 @@ package asset
 
 import (
 	"fmt"
+
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -143,6 +144,21 @@ func (s *rbac) New() []*RBACItem {
 						Resources: []string{
 							"namespaces",
 							"limitranges",
+						},
+						Verbs: []string{
+							"get",
+							"list",
+							"watch",
+						},
+					},
+					// to give power to the operand to watch Namespace and LimitRange
+					{
+						APIGroups: []string{
+							"flowcontrol.apiserver.k8s.io",
+						},
+						Resources: []string{
+							"prioritylevelconfigurations",
+							"flowschemas",
 						},
 						Verbs: []string{
 							"get",
