@@ -151,10 +151,21 @@ operator-registry-generate:
 	$(REGISTRY_SETUP_BINARY) --mode=$(DEPLOY_MODE) --olm=true --configmap=$(CONFIGMAP_ENV_FILE)
 	./hack/update-image-url.sh "$(CONFIGMAP_ENV_FILE)" "$(OPERATOR_REGISTRY_DEPLOYMENT_YAML)"
 
+.PHONY: build-testutil
+build-testutil: bin/yaml2json bin/json2yaml ## Build utilities needed by tests
+
+# utilities needed by tests
+bin/yaml2json: cmd/testutil/yaml2json/yaml2json.go
+	mkdir -p bin
+	go build $(GOGCFLAGS) -ldflags "$(LD_FLAGS)" -o bin/ "$(PKG)/cmd/testutil/yaml2json"
+bin/json2yaml: cmd/testutil/json2yaml/json2yaml.go
+	mkdir -p bin
+	go build $(GOGCFLAGS) -ldflags "$(LD_FLAGS)" -o bin/ "$(PKG)/cmd/testutil/json2yaml"
+
 # deploy the operator registry image
 operator-registry-deploy: CATALOG_SOURCE_TYPE := address
-operator-registry-deploy:
-	./hack/deploy-operator-registry.sh $(OPERATOR_NAMESPACE) $(KUBECTL) $(OPERATOR_REGISTRY_MANIFESTS_DIR)
+operator-registry-deploy: bin/yaml2json
+	./hack/deploy-operator-registry.sh $(OPERATOR_NAMESPACE) $(KUBECTL) $(OPERATOR_REGISTRY_MANIFESTS_DIR) ./bin/yaml2json
 
 
 # build operator registry image for ci locally (used for local e2e test only)
