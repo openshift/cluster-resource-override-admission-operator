@@ -13,7 +13,7 @@ GO_BUILD_BINDIR := bin
 GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 
 KUBECTL = kubectl
-VERSION := 4.10
+VERSION := 4.11
 
 OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
