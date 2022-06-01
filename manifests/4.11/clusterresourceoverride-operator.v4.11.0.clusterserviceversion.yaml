@@ -6,8 +6,8 @@ metadata:
     capabilities: Seamless Upgrades
     categories: OpenShift Optional
     certifiedLevel: Primed
-    olm.skipRange: ">=4.3.0 <4.10.0"
-    containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.10
+    olm.skipRange: ">=4.3.0 <4.11.0"
+    containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.11
     createdAt: 2019/11/15
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating Admission Webhook Server
     healthIndex: B
@@ -15,7 +15,7 @@ metadata:
     support: Red Hat
   labels:
     operatorframework.io/arch.amd64: supported
-  name: clusterresourceoverride-operator.v4.10.0
+  name: clusterresourceoverride-operator.v4.11.0
   namespace: clusterresourceoverride-operator
 spec:
   customresourcedefinitions:
@@ -290,7 +290,7 @@ spec:
                 serviceAccountName: clusterresourceoverride-operator
                 containers:
                   - name: clusterresourceoverride-operator
-                    image: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.10
+                    image: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.11
                     imagePullPolicy: Always
                     command:
                       - /usr/bin/cluster-resource-override-admission-operator
@@ -308,7 +308,7 @@ spec:
                           fieldRef:
                             fieldPath: metadata.namespace
                       - name: OPERAND_IMAGE
-                        value: quay.io/openshift/clusterresourceoverride-rhel8:4.10
+                        value: quay.io/openshift/clusterresourceoverride-rhel8:4.11
                       - name: OPERAND_VERSION
                         value: 1.0.0
                     ports:
@@ -344,4 +344,4 @@ spec:
       name: Red Hat
   provider:
     name: Red Hat
-  version: 4.10.0
+  version: 4.11.0
