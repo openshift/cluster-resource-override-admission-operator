@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
@@ -41,6 +42,16 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 								corev1.ResourceCPU:    resource.MustParse("1000m"),
 							},
 						},
+						SecurityContext: &corev1.SecurityContext{
+							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							Capabilities: &corev1.Capabilities{
+								Drop: []corev1.Capability{"ALL"},
+							},
+							RunAsNonRoot: pointer.BoolPtr(true),
+							SeccompProfile: &corev1.SeccompProfile{
+								Type: "RuntimeDefault",
+							},
+						},
 					},
 					{
 						Name:  "app",
@@ -55,6 +66,16 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 							Limits: corev1.ResourceList{
 								corev1.ResourceMemory: resource.MustParse("512Mi"),
 								corev1.ResourceCPU:    resource.MustParse("500m"),
+							},
+						},
+						SecurityContext: &corev1.SecurityContext{
+							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							Capabilities: &corev1.Capabilities{
+								Drop: []corev1.Capability{"ALL"},
+							},
+							RunAsNonRoot: pointer.BoolPtr(true),
+							SeccompProfile: &corev1.SeccompProfile{
+								Type: "RuntimeDefault",
 							},
 						},
 					},
@@ -101,6 +122,16 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 							"-c",
 							"echo The app is running! && sleep 1",
 						},
+						SecurityContext: &corev1.SecurityContext{
+							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							Capabilities: &corev1.Capabilities{
+								Drop: []corev1.Capability{"ALL"},
+							},
+							RunAsNonRoot: pointer.BoolPtr(true),
+							SeccompProfile: &corev1.SeccompProfile{
+								Type: "RuntimeDefault",
+							},
+						},
 					},
 				},
 				Containers: []corev1.Container{
@@ -117,6 +148,16 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 							Limits: corev1.ResourceList{
 								corev1.ResourceMemory: resource.MustParse("512Mi"),
 								corev1.ResourceCPU:    resource.MustParse("500m")},
+						},
+						SecurityContext: &corev1.SecurityContext{
+							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							Capabilities: &corev1.Capabilities{
+								Drop: []corev1.Capability{"ALL"},
+							},
+							RunAsNonRoot: pointer.BoolPtr(true),
+							SeccompProfile: &corev1.SeccompProfile{
+								Type: "RuntimeDefault",
+							},
 						},
 					},
 				},
@@ -169,6 +210,16 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 								ContainerPort: 60100,
 							},
 						},
+						SecurityContext: &corev1.SecurityContext{
+							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							Capabilities: &corev1.Capabilities{
+								Drop: []corev1.Capability{"ALL"},
+							},
+							RunAsNonRoot: pointer.BoolPtr(true),
+							SeccompProfile: &corev1.SeccompProfile{
+								Type: "RuntimeDefault",
+							},
+						},
 					},
 				},
 			},
@@ -217,6 +268,16 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 							Limits: corev1.ResourceList{
 								corev1.ResourceMemory: resource.MustParse("1024Mi"),
 								corev1.ResourceCPU:    resource.MustParse("1000m")},
+						},
+						SecurityContext: &corev1.SecurityContext{
+							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							Capabilities: &corev1.Capabilities{
+								Drop: []corev1.Capability{"ALL"},
+							},
+							RunAsNonRoot: pointer.BoolPtr(true),
+							SeccompProfile: &corev1.SeccompProfile{
+								Type: "RuntimeDefault",
+							},
 						},
 					},
 				},

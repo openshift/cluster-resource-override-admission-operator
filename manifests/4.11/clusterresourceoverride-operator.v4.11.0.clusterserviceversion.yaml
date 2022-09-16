@@ -322,6 +322,15 @@ spec:
                         path: /healthz
                         port: 8080
                       initialDelaySeconds: 5
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                        - ALL
+                securityContext:
+                  runAsNonRoot: true
+                  seccompProfile:
+                    type: RuntimeDefault
   installModes:
     - supported: true
       type: OwnNamespace

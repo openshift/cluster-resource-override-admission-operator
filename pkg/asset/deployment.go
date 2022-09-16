@@ -5,6 +5,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 )
 
 func (a *Asset) Deployment() *deployment {
@@ -73,6 +74,16 @@ func (d *deployment) New() *appsv1.Deployment {
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 8443,
+								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: pointer.BoolPtr(false),
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+								RunAsNonRoot: pointer.BoolPtr(true),
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: "RuntimeDefault",
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
