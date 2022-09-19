@@ -132,7 +132,7 @@ rules:
     verbs:
     - create
 
-  # to grant power to the operand to use hostnetwork scc
+  # to grant power to the operand to use hostnetwork-v2 scc
   - apiGroups:
     - security.openshift.io
     resources:
@@ -140,7 +140,7 @@ rules:
     verbs:
     - use
     resourceNames:
-    - hostnetwork
+    - hostnetwork-v2
 
   # to grant power to the operand to allow anonymous access to the admission server
   - apiGroups:

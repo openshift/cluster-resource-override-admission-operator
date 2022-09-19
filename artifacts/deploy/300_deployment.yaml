@@ -17,6 +17,10 @@ spec:
         clusterresourceoverride.operator: "true"
     spec:
       serviceAccountName: clusterresourceoverride-operator
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: clusterresourceoverride-operator
           image: CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE
@@ -51,3 +55,8 @@ spec:
               path: /healthz
               port: 8080
             initialDelaySeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL

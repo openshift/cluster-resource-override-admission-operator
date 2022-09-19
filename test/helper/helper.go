@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/pointer"
 
 	"github.com/stretchr/testify/require"
 
@@ -165,6 +166,16 @@ func NewPodWithResourceRequirement(t *testing.T, client kubernetes.Interface, na
 						},
 					},
 					Resources: requirements,
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: pointer.BoolPtr(false),
+						Capabilities: &corev1.Capabilities{
+							Drop: []corev1.Capability{"ALL"},
+						},
+						RunAsNonRoot: pointer.BoolPtr(true),
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: "RuntimeDefault",
+						},
+					},
 				},
 			},
 		},

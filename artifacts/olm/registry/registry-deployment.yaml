@@ -57,6 +57,15 @@ spec:
             memory: 100Mi
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
       - name: workdir
         emptyDir: {}

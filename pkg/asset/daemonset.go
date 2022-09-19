@@ -4,6 +4,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func (a *Asset) DaemonSet() *daemonset {
@@ -82,6 +83,16 @@ func (d *daemonset) New() *appsv1.DaemonSet {
 									ContainerPort: 9400,
 									HostPort:      9400,
 									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: pointer.BoolPtr(false),
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+								RunAsNonRoot: pointer.BoolPtr(true),
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: "RuntimeDefault",
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{

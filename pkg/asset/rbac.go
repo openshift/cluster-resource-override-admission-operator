@@ -241,7 +241,7 @@ func (s *rbac) New() []*RBACItem {
 							"use",
 						},
 						ResourceNames: []string{
-							"hostnetwork",
+							"hostnetwork-v2",
 						},
 					},
 				},

@@ -156,5 +156,14 @@ spec:
         limits:
           memory: "512Mi"
           cpu: "2000m"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
 EOF
 ```
