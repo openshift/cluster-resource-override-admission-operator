@@ -13,14 +13,14 @@ GO_BUILD_BINDIR := bin
 GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 
 KUBECTL = kubectl
-VERSION := 4.11
+VERSION := 4.12
 
 OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
 
 export OLD_OPERATOR_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8-operator:$(VERSION)
 export OLD_OPERAND_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8:$(VERSION)
-export CSV_FILE_PATH_IN_REGISTRY_IMAGE 	= /manifests/$(VERSION)/clusterresourceoverride-operator.v$(VERSION).0.clusterserviceversion.yaml
+export CSV_FILE_PATH_IN_REGISTRY_IMAGE 	= /manifests/stable/clusterresourceoverride-operator.clusterserviceversion.yaml
 
 LOCAL_OPERATOR_IMAGE	?= quay.io/redhat/clusterresourceoverride-operator:latest
 LOCAL_OPERAND_IMAGE 	?= quay.io/redhat/clusterresourceoverride:latest
@@ -105,7 +105,7 @@ deploy:
 	rm -rf $(KUBE_MANIFESTS_DIR)
 	mkdir -p $(KUBE_MANIFESTS_DIR)
 	cp -r $(KUBE_MANIFESTS_SOURCE)/* $(KUBE_MANIFESTS_DIR)/
-	cp manifests/$(VERSION)/clusterresourceoverride.crd.yaml $(KUBE_MANIFESTS_DIR)/
+	cp manifests/stable/clusterresourceoverride.crd.yaml $(KUBE_MANIFESTS_DIR)/
 	cp $(ARTIFACTS)/registry-env.yaml $(KUBE_MANIFESTS_DIR)/
 
 	$(REGISTRY_SETUP_BINARY) --mode=$(DEPLOY_MODE) --olm=false --configmap=$(CONFIGMAP_ENV_FILE)
@@ -134,7 +134,7 @@ olm-generate:
 
 	sed "s/OPERATOR_NAMESPACE_PLACEHOLDER/$(OPERATOR_NAMESPACE)/g" -i "$(OPERATOR_GROUP_FILE)"
 	sed "s/OPERATOR_NAMESPACE_PLACEHOLDER/$(OPERATOR_NAMESPACE)/g" -i "$(SUBSCRIPTION_FILE)"
-	sed "s/OPERATOR_PACKAGE_CHANNEL/\"$(VERSION)\"/g" -i "$(SUBSCRIPTION_FILE)"
+	sed "s/OPERATOR_PACKAGE_CHANNEL/\"stable\"/g" -i "$(SUBSCRIPTION_FILE)"
 
 # generate kube resources to deploy operator registry image using an init container.
 operator-registry-generate: OPERATOR_REGISTRY_DEPLOYMENT_YAML := "$(OPERATOR_REGISTRY_MANIFESTS_DIR)/registry-deployment.yaml"
@@ -173,13 +173,13 @@ operator-registry-deploy: bin/yaml2json
 # in ci the operator registry image is built by ci agent.
 # on the other hand, in local mode, we need to build the image.
 operator-registry-image-ci:
-	docker build --build-arg VERSION=4.4 -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry.ci .
+	docker build --build-arg VERSION=$(VERSION) -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry.ci .
 	docker push $(LOCAL_OPERATOR_REGISTRY_IMAGE)
 
 # build and push the OLM manifests for this operator into an operator-registry image.
 # this builds an image with the generated database, (unlike image used for ci)
 operator-registry-image: MANIFESTS_DIR := "$(OUTPUT_DIR)/manifests"
-operator-registry-image: CSV_FILE := "$(MANIFESTS_DIR)/$(VERSION)/clusterresourceoverride-operator.v$(VERSION).0.clusterserviceversion.yaml"
+operator-registry-image: CSV_FILE := "$(MANIFESTS_DIR)/stable/clusterresourceoverride-operator.clusterserviceversion.yaml"
 operator-registry-image:
 	rm -rf $(MANIFESTS_DIR)
 	mkdir -p $(MANIFESTS_DIR)

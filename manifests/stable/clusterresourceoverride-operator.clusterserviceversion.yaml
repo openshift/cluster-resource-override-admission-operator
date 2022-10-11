@@ -6,8 +6,8 @@ metadata:
     capabilities: Seamless Upgrades
     categories: OpenShift Optional
     certifiedLevel: Primed
-    olm.skipRange: ">=4.3.0 <4.11.0"
-    containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.11
+    olm.skipRange: ">=4.3.0 <4.12.0"
+    containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.12
     createdAt: 2019/11/15
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating Admission Webhook Server
     healthIndex: B
@@ -15,7 +15,7 @@ metadata:
     support: Red Hat
   labels:
     operatorframework.io/arch.amd64: supported
-  name: clusterresourceoverride-operator.v4.11.0
+  name: clusterresourceoverride-operator.v4.12.0
   namespace: clusterresourceoverride-operator
 spec:
   customresourcedefinitions:
@@ -290,7 +290,7 @@ spec:
                 serviceAccountName: clusterresourceoverride-operator
                 containers:
                   - name: clusterresourceoverride-operator
-                    image: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.11
+                    image: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.12
                     imagePullPolicy: Always
                     command:
                       - /usr/bin/cluster-resource-override-admission-operator
@@ -308,7 +308,7 @@ spec:
                           fieldRef:
                             fieldPath: metadata.namespace
                       - name: OPERAND_IMAGE
-                        value: quay.io/openshift/clusterresourceoverride-rhel8:4.11
+                        value: quay.io/openshift/clusterresourceoverride-rhel8:4.12
                       - name: OPERAND_VERSION
                         value: 1.0.0
                     ports:
@@ -347,10 +347,10 @@ spec:
     - efficiency
   labels:
     olm-owner-enterprise-app: clusterresourceoverride-operator
-    olm-status-descriptors: clusterresourceoverride-operator.v4.9.0
+    olm-status-descriptors: clusterresourceoverride-operator.v4.12.0
   maintainers:
     - email: support@redhat.com
       name: Red Hat
   provider:
     name: Red Hat
-  version: 4.11.0
+  version: 4.12.0

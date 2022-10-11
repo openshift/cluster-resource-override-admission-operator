@@ -6,7 +6,7 @@ COPY . .
 
 RUN make build
 
-FROM registry.ci.openshift.org/ocp/4.11:base
+FROM registry.ci.openshift.org/ocp/4.12:base
 
 COPY --from=builder /go/src/github.com/openshift/cluster-resource-override-admission-operator/bin/cluster-resource-override-admission-operator /usr/bin/
 
