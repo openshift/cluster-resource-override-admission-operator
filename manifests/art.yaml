@@ -1,5 +1,5 @@
 updates:
-  - file: "{MAJOR}.{MINOR}/clusterresourceoverride-operator.v{MAJOR}.{MINOR}.0.clusterserviceversion.yaml" # relative to this file
+  - file: "stable/clusterresourceoverride-operator.clusterserviceversion.yaml" # relative to this file
     update_list:
       # replace metadata.name value
       - search: "clusterresourceoverride-operator.v{MAJOR}.{MINOR}.0"
@@ -10,5 +10,5 @@ updates:
         replace: 'olm.skipRange: ">=4.3.0 <{FULL_VER}"'
   - file: "clusterresourceoverride-operator.package.yaml"
     update_list:
-      - search: "currentCSV: clusterresourceoverride-operator.v4.11.0"
+      - search: "currentCSV: clusterresourceoverride-operator.v4.12.0"
         replace: "currentCSV: clusterresourceoverride-operator.{FULL_VER}"
