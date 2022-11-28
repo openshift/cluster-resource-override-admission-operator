@@ -94,7 +94,7 @@ codegen-internal: export GO111MODULE := off
 codegen-internal:
 	mkdir -p vendor/k8s.io/code-generator/hack
 	cp boilerplate.go.txt vendor/k8s.io/code-generator/hack/boilerplate.go.txt
-	$(CODEGEN_INTERNAL) deepcopy,conversion,client,lister,informer $(PKG)/pkg/generated $(PKG)/pkg/apis $(PKG)/pkg/apis "autoscaling:v1"
+	$(CODEGEN_INTERNAL) deepcopy,conversion,client,lister,informer $(PKG)/pkg/generated $(PKG)/pkg/apis $(PKG)/pkg/apis "autoscaling:v1 selinuxfix:v1"
 
 # deploy the operator using kube manifests (no OLM)
 deploy: KUBE_MANIFESTS_SOURCE := "$(ARTIFACTS)/deploy"

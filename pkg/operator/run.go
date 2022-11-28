@@ -2,14 +2,16 @@ package operator
 
 import (
 	"fmt"
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
-	"k8s.io/klog"
 	"net/http"
 	"time"
+
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
+	"k8s.io/klog"
 
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/controller"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/selinuxfix"
 )
 
 const (
@@ -31,7 +33,7 @@ const (
 
 func NewRunner() Interface {
 	return &runner{
-		done: make(chan struct{}, 0),
+		done: make(chan struct{}),
 	}
 }
 
@@ -79,9 +81,27 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 		return
 	}
 
+	selinuxC, selinuxEnqueuer, err := selinuxfix.New(&selinuxfix.Options{
+		ResyncPeriod:   DefaultResyncPeriodPrimaryResource,
+		Workers:        DefaultWorkerCount,
+		RuntimeContext: context,
+		Client:         clients,
+		Lister:         lister,
+	})
+	if err != nil {
+		errorCh <- fmt.Errorf("failed to create controller - %s", err.Error())
+		return
+	}
+	// setup watches for secondary resources
+	if err := starter.Start(selinuxEnqueuer, config.ShutdownContext); err != nil {
+		errorCh <- fmt.Errorf("failed to start watch on secondary resources - %s", err.Error())
+		return
+	}
+
 	runner := controller.NewRunner()
-	runnerErrorCh := make(chan error, 0)
+	runnerErrorCh := make(chan error)
 	go runner.Run(config.ShutdownContext, c, runnerErrorCh)
+	go runner.Run(config.ShutdownContext, selinuxC, runnerErrorCh)
 	if err := <-runnerErrorCh; err != nil {
 		errorCh <- err
 		return

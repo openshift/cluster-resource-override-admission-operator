@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"k8s.io/client-go/rest"
 )
 
@@ -22,6 +23,27 @@ type Interface interface {
 }
 
 type Config struct {
+	// Name is the name of the operator. This name will be used to create kube resources.
+	// More info: http://kubernetes.io/docs/user-guide/identifiers#names.
+	Name string
+
+	// Namespace is the namespace where the operator is installed.
+	Namespace string
+
+	// ShutdownContext is the parent context.
+	ShutdownContext context.Context
+
+	// RestConfig is the rest.Config object to be used to build clients.
+	RestConfig *rest.Config
+
+	// OperandImage points to the operand image.
+	OperandImage string
+
+	// OperandVersion points to the operand version.
+	OperandVersion string
+}
+
+type SelinuxConfig struct {
 	// Name is the name of the operator. This name will be used to create kube resources.
 	// More info: http://kubernetes.io/docs/user-guide/identifiers#names.
 	Name string

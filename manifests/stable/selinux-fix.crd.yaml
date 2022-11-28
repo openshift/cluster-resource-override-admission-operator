@@ -1,0 +1,38 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: podsvtoverride.operator.node.openshift.io
+spec:
+  conversion:
+    strategy: None
+  group: operator.node.openshift.io
+  scope: Cluster
+  names:
+    plural: selinuxfixoverride
+    singular: selinuxfixoverrides
+    kind: SelinuxFixOverride
+    listKind: SelinuxFixOverrideList
+    shortNames:
+    - sfo
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    schema:
+      openAPIV3Schema:
+        type: object
+        description: Allows cluster administrators to enable the svt override.
+        properties:
+          spec:
+            type: object
+            description: Spec for a SelinuxFixOverride
+            properties:
+              enabled:
+                type: bool
+                description: Enable Selinux Fix
+          status:
+            type: object
+            description: The status of the PodSVTOverride
+            x-kubernetes-preserve-unknown-fields: true
