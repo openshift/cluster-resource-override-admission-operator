@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Red Hat, Inc.
+Copyright 2022 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/autoscaling/v1"
+	selinuxfixv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/selinuxfix/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -30,6 +31,7 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	AutoscalingV1() autoscalingv1.AutoscalingV1Interface
+	SelinuxfixV1() selinuxfixv1.SelinuxfixV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -37,11 +39,17 @@ type Interface interface {
 type Clientset struct {
 	*discovery.DiscoveryClient
 	autoscalingV1 *autoscalingv1.AutoscalingV1Client
+	selinuxfixV1  *selinuxfixv1.SelinuxfixV1Client
 }
 
 // AutoscalingV1 retrieves the AutoscalingV1Client
 func (c *Clientset) AutoscalingV1() autoscalingv1.AutoscalingV1Interface {
 	return c.autoscalingV1
+}
+
+// SelinuxfixV1 retrieves the SelinuxfixV1Client
+func (c *Clientset) SelinuxfixV1() selinuxfixv1.SelinuxfixV1Interface {
+	return c.selinuxfixV1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -69,6 +77,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.selinuxfixV1, err = selinuxfixv1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -82,6 +94,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.autoscalingV1 = autoscalingv1.NewForConfigOrDie(c)
+	cs.selinuxfixV1 = selinuxfixv1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -91,6 +104,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.autoscalingV1 = autoscalingv1.New(c)
+	cs.selinuxfixV1 = selinuxfixv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

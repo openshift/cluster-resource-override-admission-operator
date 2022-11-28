@@ -19,27 +19,27 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/selinuxfix/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
-type AutoscalingV1Interface interface {
+type SelinuxfixV1Interface interface {
 	RESTClient() rest.Interface
-	ClusterResourceOverridesGetter
+	SelinuxFixOverridesGetter
 }
 
-// AutoscalingV1Client is used to interact with features provided by the autoscaling.openshift.io group.
-type AutoscalingV1Client struct {
+// SelinuxfixV1Client is used to interact with features provided by the selinuxfix.node.openshift.io group.
+type SelinuxfixV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *AutoscalingV1Client) ClusterResourceOverrides() ClusterResourceOverrideInterface {
-	return newClusterResourceOverrides(c)
+func (c *SelinuxfixV1Client) SelinuxFixOverrides() SelinuxFixOverrideInterface {
+	return newSelinuxFixOverrides(c)
 }
 
-// NewForConfig creates a new AutoscalingV1Client for the given config.
-func NewForConfig(c *rest.Config) (*AutoscalingV1Client, error) {
+// NewForConfig creates a new SelinuxfixV1Client for the given config.
+func NewForConfig(c *rest.Config) (*SelinuxfixV1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -48,12 +48,12 @@ func NewForConfig(c *rest.Config) (*AutoscalingV1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &AutoscalingV1Client{client}, nil
+	return &SelinuxfixV1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new AutoscalingV1Client for the given config and
+// NewForConfigOrDie creates a new SelinuxfixV1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *AutoscalingV1Client {
+func NewForConfigOrDie(c *rest.Config) *SelinuxfixV1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -61,9 +61,9 @@ func NewForConfigOrDie(c *rest.Config) *AutoscalingV1Client {
 	return client
 }
 
-// New creates a new AutoscalingV1Client for the given RESTClient.
-func New(c rest.Interface) *AutoscalingV1Client {
-	return &AutoscalingV1Client{c}
+// New creates a new SelinuxfixV1Client for the given RESTClient.
+func New(c rest.Interface) *SelinuxfixV1Client {
+	return &SelinuxfixV1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -81,7 +81,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *AutoscalingV1Client) RESTClient() rest.Interface {
+func (c *SelinuxfixV1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

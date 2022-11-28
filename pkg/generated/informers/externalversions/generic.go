@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Red Hat, Inc.
+Copyright 2022 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	selinuxfixv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/selinuxfix/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -55,6 +56,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=autoscaling.openshift.io, Version=v1
 	case v1.SchemeGroupVersion.WithResource("clusterresourceoverrides"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Autoscaling().V1().ClusterResourceOverrides().Informer()}, nil
+
+		// Group=selinuxfix.node.openshift.io, Version=v1
+	case selinuxfixv1.SchemeGroupVersion.WithResource("selinuxfixoverrides"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Selinuxfix().V1().SelinuxFixOverrides().Informer()}, nil
 
 	}
 

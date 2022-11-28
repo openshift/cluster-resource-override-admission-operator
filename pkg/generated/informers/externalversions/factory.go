@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Red Hat, Inc.
+Copyright 2022 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 	versioned "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
 	autoscaling "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/informers/externalversions/autoscaling"
 	internalinterfaces "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	selinuxfix "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/informers/externalversions/selinuxfix"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -173,8 +174,13 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Autoscaling() autoscaling.Interface
+	Selinuxfix() selinuxfix.Interface
 }
 
 func (f *sharedInformerFactory) Autoscaling() autoscaling.Interface {
 	return autoscaling.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Selinuxfix() selinuxfix.Interface {
+	return selinuxfix.New(f, f.namespace, f.tweakListOptions)
 }

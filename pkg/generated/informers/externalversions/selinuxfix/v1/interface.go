@@ -24,8 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// ClusterResourceOverrides returns a ClusterResourceOverrideInformer.
-	ClusterResourceOverrides() ClusterResourceOverrideInformer
+	// SelinuxFixOverrides returns a SelinuxFixOverrideInformer.
+	SelinuxFixOverrides() SelinuxFixOverrideInformer
 }
 
 type version struct {
@@ -39,7 +39,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// ClusterResourceOverrides returns a ClusterResourceOverrideInformer.
-func (v *version) ClusterResourceOverrides() ClusterResourceOverrideInformer {
-	return &clusterResourceOverrideInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+// SelinuxFixOverrides returns a SelinuxFixOverrideInformer.
+func (v *version) SelinuxFixOverrides() SelinuxFixOverrideInformer {
+	return &selinuxFixOverrideInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

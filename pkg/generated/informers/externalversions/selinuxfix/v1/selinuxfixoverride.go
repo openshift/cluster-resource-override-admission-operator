@@ -22,68 +22,68 @@ import (
 	"context"
 	time "time"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	selinuxfixv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/selinuxfix/v1"
 	versioned "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/informers/externalversions/internalinterfaces"
-	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
+	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/selinuxfix/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// ClusterResourceOverrideInformer provides access to a shared informer and lister for
-// ClusterResourceOverrides.
-type ClusterResourceOverrideInformer interface {
+// SelinuxFixOverrideInformer provides access to a shared informer and lister for
+// SelinuxFixOverrides.
+type SelinuxFixOverrideInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.ClusterResourceOverrideLister
+	Lister() v1.SelinuxFixOverrideLister
 }
 
-type clusterResourceOverrideInformer struct {
+type selinuxFixOverrideInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
-// NewClusterResourceOverrideInformer constructs a new informer for ClusterResourceOverride type.
+// NewSelinuxFixOverrideInformer constructs a new informer for SelinuxFixOverride type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewClusterResourceOverrideInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredClusterResourceOverrideInformer(client, resyncPeriod, indexers, nil)
+func NewSelinuxFixOverrideInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredSelinuxFixOverrideInformer(client, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredClusterResourceOverrideInformer constructs a new informer for ClusterResourceOverride type.
+// NewFilteredSelinuxFixOverrideInformer constructs a new informer for SelinuxFixOverride type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredClusterResourceOverrideInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredSelinuxFixOverrideInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AutoscalingV1().ClusterResourceOverrides().List(context.TODO(), options)
+				return client.SelinuxfixV1().SelinuxFixOverrides().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AutoscalingV1().ClusterResourceOverrides().Watch(context.TODO(), options)
+				return client.SelinuxfixV1().SelinuxFixOverrides().Watch(context.TODO(), options)
 			},
 		},
-		&autoscalingv1.ClusterResourceOverride{},
+		&selinuxfixv1.SelinuxFixOverride{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *clusterResourceOverrideInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredClusterResourceOverrideInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *selinuxFixOverrideInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredSelinuxFixOverrideInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *clusterResourceOverrideInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&autoscalingv1.ClusterResourceOverride{}, f.defaultInformer)
+func (f *selinuxFixOverrideInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&selinuxfixv1.SelinuxFixOverride{}, f.defaultInformer)
 }
 
-func (f *clusterResourceOverrideInformer) Lister() v1.ClusterResourceOverrideLister {
-	return v1.NewClusterResourceOverrideLister(f.Informer().GetIndexer())
+func (f *selinuxFixOverrideInformer) Lister() v1.SelinuxFixOverrideLister {
+	return v1.NewSelinuxFixOverrideLister(f.Informer().GetIndexer())
 }

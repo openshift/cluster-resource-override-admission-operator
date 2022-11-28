@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Red Hat, Inc.
+Copyright 2022 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import (
 	clientset "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/autoscaling/v1"
 	fakeautoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/autoscaling/v1/fake"
+	selinuxfixv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/selinuxfix/v1"
+	fakeselinuxfixv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/selinuxfix/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -79,4 +81,9 @@ var _ clientset.Interface = &Clientset{}
 // AutoscalingV1 retrieves the AutoscalingV1Client
 func (c *Clientset) AutoscalingV1() autoscalingv1.AutoscalingV1Interface {
 	return &fakeautoscalingv1.FakeAutoscalingV1{Fake: &c.Fake}
+}
+
+// SelinuxfixV1 retrieves the SelinuxfixV1Client
+func (c *Clientset) SelinuxfixV1() selinuxfixv1.SelinuxfixV1Interface {
+	return &fakeselinuxfixv1.FakeSelinuxfixV1{Fake: &c.Fake}
 }
