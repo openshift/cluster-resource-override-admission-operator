@@ -37,6 +37,9 @@ spec:
                     type: object
                     description: Spec for Pod resource overrides.
                     properties:
+                      forceSelinuxRelabel:
+                        type: boolean
+                        description: (optional, false) Enable the Selinux relabelling fix.
                       memoryRequestToLimitPercent:
                         type: integer
                         description: (optional, 1-100) If a container memory limit has been specified or defaulted, the memory request is overridden to this percentage of the limit.

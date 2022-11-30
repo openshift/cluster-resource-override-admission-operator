@@ -4,3 +4,4 @@ metadata:
   name: test
   labels:
     clusterresourceoverrides.admission.autoscaling.openshift.io/enabled: "true"
+    forceselinuxrelabel.admission.node.openshift.io/enabled: "true"

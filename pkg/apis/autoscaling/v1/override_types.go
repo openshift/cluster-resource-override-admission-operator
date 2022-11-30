@@ -128,6 +128,9 @@ type PodResourceOverrideSpec struct {
 	// LimitRange defaults are merged prior to the override.
 	//
 
+	// ForceSelinuxRelabel (if true) label pods with spc_t if they have a PVC
+	ForceSelinuxRelabel bool `json:"forceSelinuxRelabel"`
+
 	// LimitCPUToMemoryPercent (if > 0) overrides the CPU limit to a ratio of the memory limit;
 	// 100% overrides CPU to 1 core per 1GiB of RAM. This is done before overriding the CPU request.
 	LimitCPUToMemoryPercent int64 `json:"limitCPUToMemoryPercent"`
