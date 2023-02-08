@@ -66,6 +66,12 @@ func (c *daemonSetHandler) Handle(context *ReconcileRequestContext, original *au
 	case accessor.GetAnnotations()[values.ServingCertHashAnnotationKey] != current.Status.Hash.ServingCert:
 		klog.V(2).Infof("key=%s resource=%T/%s serving cert hash mismatch", original.Name, object, accessor.GetName())
 		ensure = true
+	case values.OperandImage != current.Status.Image:
+		klog.V(2).Infof("operand image mismatch: current: %s original: %s", current.Status.Image, values.OperandImage)
+		ensure = true
+	case values.OperandVersion != current.Status.Version:
+		klog.V(2).Infof("operand version mismatch: current: %s original: %s", current.Status.Version, values.OperandVersion)
+		ensure = true
 	}
 
 	if ensure {
