@@ -15,6 +15,7 @@ metadata:
     support: Red Hat
   labels:
     operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.s390x: supported
   name: clusterresourceoverride-operator.v4.13.0
   namespace: clusterresourceoverride-operator
 spec:
