@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/dynamic"
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
@@ -62,6 +63,16 @@ func TestDynamicClient(t *testing.T) {
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 8080,
+								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: pointer.BoolPtr(false),
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+								RunAsNonRoot: pointer.BoolPtr(true),
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: "RuntimeDefault",
 								},
 							},
 						},
