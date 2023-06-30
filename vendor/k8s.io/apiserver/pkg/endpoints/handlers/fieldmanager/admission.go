@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/managedfields"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/warning"
 )
@@ -60,14 +61,17 @@ func (admit *managedFieldsValidatingAdmissionController) Admit(ctx context.Conte
 	}
 	objectMeta, err := meta.Accessor(a.GetObject())
 	if err != nil {
-		return err
+		// the object we are dealing with doesn't have object metadata defined
+		// in that case we don't have to keep track of the managedField
+		// just call the wrapped admission
+		return mutationInterface.Admit(ctx, a, o)
 	}
 	managedFieldsBeforeAdmission := objectMeta.GetManagedFields()
 	if err := mutationInterface.Admit(ctx, a, o); err != nil {
 		return err
 	}
 	managedFieldsAfterAdmission := objectMeta.GetManagedFields()
-	if _, err := DecodeManagedFields(managedFieldsAfterAdmission); err != nil {
+	if err := managedfields.ValidateManagedFields(managedFieldsAfterAdmission); err != nil {
 		objectMeta.SetManagedFields(managedFieldsBeforeAdmission)
 		warning.AddWarning(ctx, "",
 			fmt.Sprintf(InvalidManagedFieldsAfterMutatingAdmissionWarningFormat,

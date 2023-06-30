@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -59,7 +59,7 @@ func processNextWorkItem(shutdownCtx context.Context, controller Interface) bool
 
 	// Run the syncHandler, passing it the namespace/name string of the
 	// Foo resource to be synced.
-	result, err := controller.Reconciler().Reconcile(request)
+	result, err := controller.Reconciler().Reconcile(context.TODO(), request)
 	if err != nil {
 		// Put the item back on the workqueue to handle any transient errors.
 		controller.Queue().AddRateLimited(request)
