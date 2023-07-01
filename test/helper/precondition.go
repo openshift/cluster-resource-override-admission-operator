@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -50,8 +51,14 @@ func (f *PreCondition) MustHaveAdmissionRegistrationV1(t *testing.T) {
 func (f *PreCondition) MustHaveClusterResourceOverrideAdmissionConfiguration(t *testing.T) {
 	t.Logf("fetching MutatingWebhookConfigurations %s", webhookName)
 
-	configuration, err := f.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), webhookName, metav1.GetOptions{})
+	var configuration *admissionregistrationv1.MutatingWebhookConfiguration
+	var err error
+	pollErr := wait.Poll(WaitInterval, WaitTimeout, func() (bool, error) {
+		configuration, err = f.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), webhookName, metav1.GetOptions{})
+		return (err == nil && configuration != nil), nil
+	})
 
 	require.NoErrorf(t, err, "MutatingWebhookConfiguration %s resource not found in /apis/admissionregistration.k8s.io/v1 discovery document", webhookName)
+	require.NoErrorf(t, pollErr, "MutatingWebhookConfiguration %s resource not found in /apis/admissionregistration.k8s.io/v1 discovery document prior to timeout", webhookName)
 	require.NotNil(t, configuration)
 }
