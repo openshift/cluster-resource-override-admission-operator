@@ -33,7 +33,7 @@ const (
 
 /*
  * By default, all the following metrics are defined as falling under
- * ALPHA stability level https://github.com/kubernetes/enhancements/blob/master/keps/sig-instrumentation/1209-metrics-stability/20190404-kubernetes-control-plane-metrics-stability.md#stability-classes)
+ * ALPHA stability level https://github.com/kubernetes/enhancements/blob/master/keps/sig-instrumentation/1209-metrics-stability/kubernetes-control-plane-metrics-stability.md#stability-classes)
  *
  * Promoting the stability level of the metric is a responsibility of the component owner, since it
  * involves explicitly acknowledging support for the metric across multiple releases, in accordance with
@@ -47,11 +47,11 @@ var (
 			Name:      "transformation_duration_seconds",
 			Help:      "Latencies in seconds of value transformation operations.",
 			// In-process transformations (ex. AES CBC) complete on the order of 20 microseconds. However, when
-			// external KMS is involved latencies may climb into milliseconds.
-			Buckets:        metrics.ExponentialBuckets(5e-6, 2, 14),
+			// external KMS is involved latencies may climb into hundreds of milliseconds.
+			Buckets:        metrics.ExponentialBuckets(5e-6, 2, 25),
 			StabilityLevel: metrics.ALPHA,
 		},
-		[]string{"transformation_type"},
+		[]string{"transformation_type", "transformer_prefix"},
 	)
 
 	transformerOperationsTotal = metrics.NewCounterVec(
@@ -111,12 +111,11 @@ func RegisterMetrics() {
 
 // RecordTransformation records latencies and count of TransformFromStorage and TransformToStorage operations.
 // Note that transformation_failures_total metric is deprecated, use transformation_operations_total instead.
-func RecordTransformation(transformationType, transformerPrefix string, start time.Time, err error) {
+func RecordTransformation(transformationType, transformerPrefix string, elapsed time.Duration, err error) {
 	transformerOperationsTotal.WithLabelValues(transformationType, transformerPrefix, status.Code(err).String()).Inc()
 
-	switch {
-	case err == nil:
-		transformerLatencies.WithLabelValues(transformationType).Observe(sinceInSeconds(start))
+	if err == nil {
+		transformerLatencies.WithLabelValues(transformationType, transformerPrefix).Observe(elapsed.Seconds())
 	}
 }
 

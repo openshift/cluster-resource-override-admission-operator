@@ -1,6 +1,7 @@
 package reconciler
 
 import (
+	"context"
 	"fmt"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
@@ -11,7 +12,7 @@ import (
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -57,7 +58,7 @@ type reconciler struct {
 	dynamic        dynamicclient.Ensurer
 }
 
-func (r *reconciler) Reconcile(request controllerreconciler.Request) (result controllerreconciler.Result, err error) {
+func (r *reconciler) Reconcile(ctx context.Context, request controllerreconciler.Request) (result controllerreconciler.Result, err error) {
 	klog.V(4).Infof("key=%s new request for reconcile", request.Name)
 
 	result = controllerreconciler.Result{}

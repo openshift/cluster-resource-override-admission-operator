@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -23,7 +23,8 @@ type EventHandler struct {
 	queue workqueue.RateLimitingInterface
 }
 
-func (e EventHandler) OnAdd(obj interface{}) {
+func (e EventHandler) OnAdd(obj interface{}, isInInitialList bool) {
+	_ = isInInitialList
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 
 	if err != nil {
@@ -37,7 +38,7 @@ func (e EventHandler) OnAdd(obj interface{}) {
 // OnUpdate creates UpdateEvent and calls Update on EventHandler
 func (e EventHandler) OnUpdate(oldObj, newObj interface{}) {
 	// We don't distinguish between an add and update.
-	e.OnAdd(newObj)
+	e.OnAdd(newObj, false)
 }
 
 func (e EventHandler) OnDelete(obj interface{}) {

@@ -13,7 +13,7 @@ GO_BUILD_BINDIR := bin
 GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 
 KUBECTL = kubectl
-VERSION := 4.13
+VERSION := 4.14
 
 OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
@@ -29,7 +29,7 @@ export LOCAL_OPERAND_IMAGE
 export LOCAL_OPERATOR_REGISTRY_IMAGE
 
 # Include the library makefile
-include $(addprefix ./vendor/github.com/openshift/library-go/alpha-build-machinery/make/, \
+include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	golang.mk \
 	targets/openshift/images.mk \
 )
