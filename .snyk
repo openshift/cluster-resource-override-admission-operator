@@ -2,3 +2,5 @@ exclude:
   global:
     - "vendor/**"
     - "**/*_test.go"
+    - "cmd/testutil/**"  # these are utilities only used during testing
+    - "test/"  # these are tests
