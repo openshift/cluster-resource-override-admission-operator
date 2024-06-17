@@ -49,7 +49,7 @@ func (s *service) New() *corev1.Service {
 			Ports: []corev1.ServicePort{
 				{
 					Port:       443,
-					TargetPort: intstr.FromInt(8443),
+					TargetPort: intstr.FromInt(9400),
 				},
 			},
 		},

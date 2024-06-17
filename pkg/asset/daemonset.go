@@ -52,7 +52,6 @@ func (d *daemonset) New() *appsv1.DaemonSet {
 					},
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
 					NodeSelector: map[string]string{
 						"node-role.kubernetes.io/master": "",
 					},
@@ -67,7 +66,6 @@ func (d *daemonset) New() *appsv1.DaemonSet {
 							},
 							Args: []string{
 								"--secure-port=9400",
-								"--bind-address=127.0.0.1",
 								"--tls-cert-file=/var/serving-cert/tls.crt",
 								"--tls-private-key-file=/var/serving-cert/tls.key",
 								"--v=3",
@@ -81,8 +79,6 @@ func (d *daemonset) New() *appsv1.DaemonSet {
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 9400,
-									HostPort:      9400,
-									Protocol:      corev1.ProtocolTCP,
 								},
 							},
 							SecurityContext: &corev1.SecurityContext{

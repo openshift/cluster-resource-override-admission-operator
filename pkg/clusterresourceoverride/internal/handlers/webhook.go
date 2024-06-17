@@ -45,11 +45,6 @@ func (w *webhookConfigurationHandler) Handle(context *ReconcileRequestContext, o
 		desired := w.asset.NewMutatingWebhookConfiguration().New()
 		context.ControllerSetter().Set(desired, original)
 
-		servingCertCA := context.GetBundle().ServingCertCA
-		for i := range desired.Webhooks {
-			desired.Webhooks[i].ClientConfig.CABundle = servingCertCA
-		}
-
 		webhook, err := w.dynamic.Ensure(desired)
 		if err != nil {
 			handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)

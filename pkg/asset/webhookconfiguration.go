@@ -26,7 +26,7 @@ func (m *mutatingWebhookConfiguration) Name() string {
 }
 
 func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1.MutatingWebhookConfiguration {
-	url := fmt.Sprintf("https://localhost:9400/apis/%s/%s/%s", m.values.AdmissionAPIGroup, m.values.AdmissionAPIVersion, m.values.AdmissionAPIResource)
+	path := fmt.Sprintf("/apis/%s/%s/%s", m.values.AdmissionAPIGroup, m.values.AdmissionAPIVersion, m.values.AdmissionAPIResource)
 	policy := admissionregistrationv1.Fail
 	matchPolicy := admissionregistrationv1.Equivalent
 	namespaceMatchLabelKey := fmt.Sprintf("%s.%s/enabled", m.values.AdmissionAPIResource, m.values.AdmissionAPIGroup)
@@ -42,6 +42,9 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1.MutatingWe
 			Name: m.Name(),
 			Labels: map[string]string{
 				m.values.OwnerLabelKey: m.values.OwnerLabelValue,
+			},
+			Annotations: map[string]string{
+				"service.beta.openshift.io/inject-cabundle": "true",
 			},
 		},
 		Webhooks: []admissionregistrationv1.MutatingWebhook{
@@ -66,7 +69,11 @@ func (m *mutatingWebhookConfiguration) New() *admissionregistrationv1.MutatingWe
 				ClientConfig: admissionregistrationv1.WebhookClientConfig{
 					// CABundle will be injected at runtime
 					CABundle: nil,
-					URL:      &url,
+					Service: &admissionregistrationv1.ServiceReference{
+						Name:      "kubernetes",
+						Namespace: "default",
+						Path:      &path,
+					},
 				},
 				Rules: []admissionregistrationv1.RuleWithOperations{
 					{

@@ -1,15 +1,12 @@
 package e2e
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
@@ -384,68 +381,6 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	require.Equal(t, override.Spec.Hash(), current.Status.Hash.Configuration)
 
 	// create a new Pod, we expect the Pod resources to be overridden based of the new configuration.
-	ns, disposer := helper.NewNamespace(t, client.Kubernetes, "croe2e", true)
-	defer disposer.Dispose()
-
-	requirements := corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("1024Mi"),
-			corev1.ResourceCPU:    resource.MustParse("1000m"),
-		},
-	}
-
-	resourceWant := map[string]corev1.ResourceRequirements{
-		"test": {
-			Limits: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("1024Mi"),
-				corev1.ResourceCPU:    resource.MustParse("500m"),
-			},
-			Requests: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("512Mi"),
-				corev1.ResourceCPU:    resource.MustParse("250m"),
-			},
-		},
-	}
-
-	podGot, disposer := helper.NewPodWithResourceRequirement(t, client.Kubernetes, ns.GetName(), "test", requirements)
-	defer disposer.Dispose()
-
-	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
-}
-
-func TestClusterResourceOverrideAdmissionWithCertRotation(t *testing.T) {
-	client := helper.NewClient(t, options.config)
-
-	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1(t)
-
-	configuration := autoscalingv1.PodResourceOverrideSpec{
-		LimitCPUToMemoryPercent:     50,
-		CPURequestToLimitPercent:    50,
-		MemoryRequestToLimitPercent: 50,
-	}
-	override := autoscalingv1.PodResourceOverride{
-		Spec: configuration,
-	}
-
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
-
-	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-
-	originalCertHash := current.Status.Hash.ServingCert
-	require.NotEmpty(t, originalCertHash)
-
-	current.Status.CertsRotateAt = metav1.NewTime(time.Now())
-	current, err := client.Operator.AutoscalingV1().ClusterResourceOverrides().UpdateStatus(context.TODO(), current, metav1.UpdateOptions{})
-	require.NoError(t, err)
-
-	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, true))
-	newCertHash := current.Status.Hash.ServingCert
-	require.NotEmpty(t, originalCertHash)
-	require.NotEqual(t, originalCertHash, newCertHash)
-
-	// make sure everything works after cert is regenerated
 	ns, disposer := helper.NewNamespace(t, client.Kubernetes, "croe2e", true)
 	defer disposer.Dispose()
 

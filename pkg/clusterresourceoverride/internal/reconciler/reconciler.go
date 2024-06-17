@@ -29,10 +29,10 @@ func NewReconciler(options *handlers.Options) *reconciler {
 		handlers.NewAvailabilityHandler(options),
 		handlers.NewValidationHandler(options),
 		handlers.NewConfigurationHandler(options),
-		handlers.NewCertGenerationHandler(options),
-		handlers.NewCertReadyHandler(options),
+		handlers.NewServiceHandler(options),
 		handlers.NewDaemonSetHandler(options),
 		handlers.NewDeploymentReadyHandler(options),
+		handlers.NewAPIServiceHandler(options),
 		handlers.NewWebhookConfigurationHandlerHandler(options),
 		handlers.NewAvailabilityHandler(options),
 	}
