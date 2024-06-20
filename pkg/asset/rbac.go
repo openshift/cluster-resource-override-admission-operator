@@ -51,7 +51,7 @@ func (s *rbac) New() []*RBACItem {
 					APIVersion: "v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      s.values.Name,
+					Name:      s.values.ServiceAccountName,
 					Namespace: s.values.Namespace,
 				},
 			},
@@ -96,10 +96,10 @@ func (s *rbac) New() []*RBACItem {
 				Rules: []rbacv1.PolicyRule{
 					{
 						APIGroups: []string{
-							"autoscaling.openshift.io",
+							s.values.AdmissionAPIGroup,
 						},
 						Resources: []string{
-							s.values.Name,
+							s.values.AdmissionAPIResource,
 						},
 						Verbs: []string{
 							"create",
@@ -212,113 +212,6 @@ func (s *rbac) New() []*RBACItem {
 				},
 				Subjects: []rbacv1.Subject{
 					thisOperatorServiceAccount,
-				},
-			},
-		},
-
-		// so that daemonset pods can use hostnetwork
-		{
-			Resource: "roles",
-			Object: &rbacv1.Role{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Role",
-					APIVersion: apiVersion,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("%s-scc-hostnetwork-use", s.values.Name),
-					Namespace: s.values.Namespace,
-					Labels:    commonLabels,
-				},
-				Rules: []rbacv1.PolicyRule{
-					{
-						APIGroups: []string{
-							"security.openshift.io",
-						},
-						Resources: []string{
-							"securitycontextconstraints",
-						},
-						Verbs: []string{
-							"use",
-						},
-						ResourceNames: []string{
-							"hostnetwork-v2",
-						},
-					},
-				},
-			},
-		},
-		{
-			Resource: "rolebindings",
-			Object: &rbacv1.RoleBinding{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "RoleBinding",
-					APIVersion: apiVersion,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("%s-scc-hostnetwork-use", s.values.Name),
-					Namespace: s.values.Namespace,
-					Labels:    commonLabels,
-				},
-				RoleRef: rbacv1.RoleRef{
-					APIGroup: "rbac.authorization.k8s.io",
-					Kind:     "Role",
-					Name:     fmt.Sprintf("%s-scc-hostnetwork-use", s.values.Name),
-				},
-				Subjects: []rbacv1.Subject{
-					thisOperatorServiceAccount,
-				},
-			},
-		},
-
-		// so that kube-apiserver can directly call the webhook server
-		{
-			Resource: "clusterroles",
-			Object: &rbacv1.ClusterRole{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ClusterRole",
-					APIVersion: apiVersion,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   fmt.Sprintf("%s-anonymous-access", s.values.Name),
-					Labels: commonLabels,
-				},
-				Rules: []rbacv1.PolicyRule{
-					{
-						APIGroups: []string{
-							s.values.AdmissionAPIGroup,
-						},
-						Resources: []string{
-							s.values.AdmissionAPIResource,
-						},
-						Verbs: []string{
-							"create",
-						},
-					},
-				},
-			},
-		},
-		{
-			Resource: "clusterrolebindings",
-			Object: &rbacv1.ClusterRoleBinding{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ClusterRoleBinding",
-					APIVersion: apiVersion,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   fmt.Sprintf("%s-anonymous-access", s.values.Name),
-					Labels: commonLabels,
-				},
-				RoleRef: rbacv1.RoleRef{
-					APIGroup: "rbac.authorization.k8s.io",
-					Kind:     "ClusterRole",
-					Name:     fmt.Sprintf("%s-anonymous-access", s.values.Name),
-				},
-				Subjects: []rbacv1.Subject{
-					{
-						APIGroup: "rbac.authorization.k8s.io",
-						Kind:     "User",
-						Name:     "system:anonymous",
-					},
 				},
 			},
 		},

@@ -42,8 +42,6 @@ func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autos
 
 		// No APIService object
 		object := a.asset.APIService().New()
-		object.Spec.CABundle = ctx.GetBundle().ServingCertCA
-		ctx.ControllerSetter().Set(object, original)
 
 		apiservice, err := a.ensurer.Ensure(object)
 		if err != nil {

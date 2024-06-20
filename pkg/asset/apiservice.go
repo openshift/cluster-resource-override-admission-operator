@@ -30,8 +30,10 @@ func (a *apiservice) New() *apiregistrationv1.APIService {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: a.Name(),
 			Labels: map[string]string{
-				a.values.OwnerLabelKey:   a.values.OwnerLabelValue,
-				AutoRegisterManagedLabel: "onstart",
+				a.values.OwnerLabelKey: a.values.OwnerLabelValue,
+			},
+			Annotations: map[string]string{
+				"service.alpha.openshift.io/inject-cabundle": "true",
 			},
 		},
 		Spec: apiregistrationv1.APIServiceSpec{

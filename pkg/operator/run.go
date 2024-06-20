@@ -2,10 +2,13 @@ package operator
 
 import (
 	"fmt"
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
-	"k8s.io/klog/v2"
 	"net/http"
 	"time"
+
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2"
+	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/controller"
@@ -52,6 +55,7 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 	}
 
 	context := runtime.NewOperandContext(config.Name, config.Namespace, DefaultCR, config.OperandImage, config.OperandVersion)
+	apiregistrationv1.AddToScheme(scheme.Scheme)
 
 	// create lister(s) for secondary resources
 	lister, starter := secondarywatch.New(&secondarywatch.Options{
