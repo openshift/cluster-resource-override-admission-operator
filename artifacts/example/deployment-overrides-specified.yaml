@@ -1,0 +1,19 @@
+apiVersion: operator.autoscaling.openshift.io/v1
+kind: ClusterResourceOverride
+metadata:
+  name: cluster
+spec:
+  podResourceOverride:
+    spec:
+      memoryRequestToLimitPercent: 50
+      cpuRequestToLimitPercent: 25
+      limitCPUToMemoryPercent: 200
+  deploymentOverrides:
+    replicas: 1
+    nodeSelector:
+      node-role.kubernetes.io/worker: ""
+    tolerations:
+    - key: "key"
+      operator: "Equal"
+      value: "value"
+      effect: "NoSchedule"

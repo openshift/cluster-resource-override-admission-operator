@@ -23,17 +23,18 @@ func (d *deployment) Name() string {
 }
 
 func (d *deployment) New() *appsv1.Deployment {
-	var replicas int32 = 1
+	var replicas int32 = 2
+	tolerationSeconds := int64(120)
 	values := d.asset.Values()
 
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
-			APIVersion: "extensions/v1",
+			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: values.Namespace,
-			Name:      values.Name,
+			Name:      d.Name(),
 			Labels: map[string]string{
 				values.OwnerLabelKey: values.OwnerLabelValue,
 			},
@@ -53,14 +54,20 @@ func (d *deployment) New() *appsv1.Deployment {
 					},
 				},
 				Spec: corev1.PodSpec{
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/master": "",
+					},
 					ServiceAccountName: values.ServiceAccountName,
 					Containers: []corev1.Container{
 						{
-							Name:            values.Name,
+							Name:            d.Name(),
 							Image:           values.OperandImage,
 							ImagePullPolicy: corev1.PullAlways,
+							Command: []string{
+								"/usr/bin/cluster-resource-override-admission",
+							},
 							Args: []string{
-								"--secure-port=8443",
+								"--secure-port=9400",
 								"--tls-cert-file=/var/serving-cert/tls.crt",
 								"--tls-private-key-file=/var/serving-cert/tls.key",
 								"--v=8",
@@ -73,7 +80,7 @@ func (d *deployment) New() *appsv1.Deployment {
 							},
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: 8443,
+									ContainerPort: 9400,
 								},
 							},
 							SecurityContext: &corev1.SecurityContext{
@@ -101,7 +108,7 @@ func (d *deployment) New() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   "/healthz",
-										Port:   intstr.FromInt(8443),
+										Port:   intstr.FromInt(9400),
 										Scheme: corev1.URISchemeHTTPS,
 									},
 								},
@@ -129,6 +136,45 @@ func (d *deployment) New() *appsv1.Deployment {
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: d.asset.Configuration().Name(),
 									},
+								},
+							},
+						},
+					},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node-role.kubernetes.io/master",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+						{
+							Key:               "node.kubernetes.io/unreachable",
+							Operator:          corev1.TolerationOpExists,
+							Effect:            corev1.TaintEffectNoExecute,
+							TolerationSeconds: &tolerationSeconds,
+						},
+						{
+							Key:               "node.kubernetes.io/not-ready",
+							Operator:          corev1.TolerationOpExists,
+							Effect:            corev1.TaintEffectNoExecute,
+							TolerationSeconds: &tolerationSeconds,
+						},
+					},
+					Affinity: &corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      values.SelectorLabelKey,
+												Operator: metav1.LabelSelectorOpIn,
+												Values: []string{
+													values.SelectorLabelValue,
+												},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
 								},
 							},
 						},

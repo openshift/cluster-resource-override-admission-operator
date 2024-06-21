@@ -73,8 +73,8 @@ func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, 
 	// setup operand asset
 	operandAsset := asset.New(options.RuntimeContext)
 
-	// initialize install strategy, we use daemonset
-	d := deploy.NewDaemonSetInstall(options.Lister.AppsV1DaemonSetLister(), options.RuntimeContext, operandAsset, ensurer.NewDaemonSetEnsurer(options.Client.Dynamic))
+	// initialize install strategy, we use deployment
+	d := deploy.NewDeploymentInstall(options.Lister.AppsV1DeploymentLister(), options.RuntimeContext, operandAsset, ensurer.NewDeploymentEnsurer(options.Client.Dynamic))
 
 	reconciler := reconciler.NewReconciler(&handlers.Options{
 		OperandContext:  options.RuntimeContext,

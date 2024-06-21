@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,20 +23,20 @@ import (
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func NewDaemonSetHandler(o *Options) *daemonSetHandler {
-	return &daemonSetHandler{
+func NewDeploymentHandler(o *Options) *deploymentHandler {
+	return &deploymentHandler{
 		client:     o.Client.Kubernetes,
 		dynamic:    o.Client.Dynamic,
-		deployment: ensurer.NewDaemonSetEnsurer(o.Client.Dynamic),
+		deployment: ensurer.NewDeploymentEnsurer(o.Client.Dynamic),
 		asset:      o.Asset,
 		lister:     o.SecondaryLister,
 		deploy:     o.Deploy,
 	}
 }
 
-type daemonSetHandler struct {
+type deploymentHandler struct {
 	client     kubernetes.Interface
-	deployment *ensurer.DaemonSetEnsurer
+	deployment *ensurer.DeploymentEnsurer
 	dynamic    dynamicclient.Ensurer
 	lister     *secondarywatch.Lister
 	asset      *asset.Asset
@@ -46,7 +48,7 @@ type Deployer interface {
 	Exists(namespace, name string) (object metav1.Object, err error)
 }
 
-func (c *daemonSetHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (c *deploymentHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 	ensure := false
 
@@ -100,7 +102,7 @@ func (c *daemonSetHandler) Handle(context *ReconcileRequestContext, original *au
 	return
 }
 
-func (c *daemonSetHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) (current runtime.Object, accessor metav1.Object, err error) {
+func (c *deploymentHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) (current runtime.Object, accessor metav1.Object, err error) {
 	name := c.asset.NewMutatingWebhookConfiguration().Name()
 	if deleteErr := c.client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{}); deleteErr != nil && !k8serrors.IsNotFound(deleteErr) {
 		err = fmt.Errorf("failed to delete MutatingWebhookConfiguration - %s", deleteErr.Error())
@@ -117,36 +119,62 @@ func (c *daemonSetHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscaling
 	return
 }
 
-func (c *daemonSetHandler) ApplyToDeploymentObject(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) deploy.Applier {
+func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) deploy.Applier {
 	values := c.asset.Values()
 
 	return func(object metav1.Object) {
-		if len(object.GetAnnotations()) == 0 {
-			object.SetAnnotations(map[string]string{})
+		deployment, ok := object.(*appsv1.Deployment)
+		if !ok {
+			klog.Errorf("expected Deployment, got %T", object)
+			return
+		}
+		if len(deployment.GetAnnotations()) == 0 {
+			deployment.SetAnnotations(map[string]string{})
 		}
 
-		object.GetAnnotations()[values.ConfigurationHashAnnotationKey] = cro.Status.Hash.Configuration
-		object.GetAnnotations()[values.ServingCertHashAnnotationKey] = cro.Status.Hash.ServingCert
+		deployment.GetAnnotations()[values.ConfigurationHashAnnotationKey] = cro.Status.Hash.Configuration
+		deployment.GetAnnotations()[values.ServingCertHashAnnotationKey] = cro.Status.Hash.ServingCert
+
+		// Override replica count, if specified in the CRD
+		if cro.Spec.DeploymentOverrides.Replicas != nil {
+			deployment.Spec.Replicas = cro.Spec.DeploymentOverrides.Replicas
+		}
 
 		context.ControllerSetter().Set(object, cro)
 	}
 }
 
-func (c *daemonSetHandler) ApplyToToPodTemplate(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) deploy.Applier {
+func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) deploy.Applier {
 	values := c.asset.Values()
 
 	return func(object metav1.Object) {
-		if len(object.GetAnnotations()) == 0 {
-			object.SetAnnotations(map[string]string{})
+		podTemplateSpec, ok := object.(*corev1.PodTemplateSpec)
+		if !ok {
+			klog.Errorf("expected PodTemplateSpec, got %T", object)
+			return
 		}
 
-		object.GetAnnotations()[values.OwnerAnnotationKey] = cro.Name
-		object.GetAnnotations()[values.ConfigurationHashAnnotationKey] = cro.Status.Hash.Configuration
-		object.GetAnnotations()[values.ServingCertHashAnnotationKey] = cro.Status.Hash.ServingCert
+		if len(podTemplateSpec.GetAnnotations()) == 0 {
+			podTemplateSpec.SetAnnotations(map[string]string{})
+		}
+
+		podTemplateSpec.GetAnnotations()[values.OwnerAnnotationKey] = cro.Name
+		podTemplateSpec.GetAnnotations()[values.ConfigurationHashAnnotationKey] = cro.Status.Hash.Configuration
+		podTemplateSpec.GetAnnotations()[values.ServingCertHashAnnotationKey] = cro.Status.Hash.ServingCert
+
+		// Replaces nodeSelector, if specified in the CRD
+		if len(cro.Spec.DeploymentOverrides.NodeSelector) > 0 {
+			podTemplateSpec.Spec.NodeSelector = cro.Spec.DeploymentOverrides.NodeSelector
+		}
+
+		// Replaces tolerations, if specified in the CRD
+		if len(cro.Spec.DeploymentOverrides.Tolerations) > 0 {
+			podTemplateSpec.Spec.Tolerations = cro.Spec.DeploymentOverrides.Tolerations
+		}
 	}
 }
 
-func (c *daemonSetHandler) EnsureRBAC(context *ReconcileRequestContext, in *autoscalingv1.ClusterResourceOverride) error {
+func (c *deploymentHandler) EnsureRBAC(context *ReconcileRequestContext, in *autoscalingv1.ClusterResourceOverride) error {
 	list := c.asset.RBAC().New()
 	for _, item := range list {
 		context.ControllerSetter()(item.Object, in)

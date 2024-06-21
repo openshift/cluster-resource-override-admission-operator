@@ -61,6 +61,8 @@ type ClusterResourceOverride struct {
 
 type ClusterResourceOverrideSpec struct {
 	PodResourceOverride PodResourceOverride `json:"podResourceOverride"`
+	// +optional
+	DeploymentOverrides DeploymentOverrides `json:"deploymentOverrides,omitempty"`
 }
 
 type ClusterResourceOverrideStatus struct {
@@ -118,6 +120,23 @@ type ClusterResourceOverrideResources struct {
 type PodResourceOverride struct {
 	metav1.TypeMeta `json:",inline"`
 	Spec            PodResourceOverrideSpec `json:"spec,omitempty"`
+}
+
+// DeploymentOverrides defines fields that can be overridden for a given deployment.
+type DeploymentOverrides struct {
+	// Override the NodeSelector for the deployment's pods. This allows, for example, for the ClusterResourceOverride
+	// to be run on non-master nodes.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// Override the Tolerations of the deployment's pods. This allows, for example, for the ClusterResourceOverride
+	// to be run on non-master nodes with a specific taint.
+	// +optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	// Override the number of replicas for the deployment.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 // PodResourceOverrideSpec is the configuration for the ClusterResourceOverride

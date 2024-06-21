@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +53,7 @@ func NewClient(t *testing.T, config *rest.Config) *Client {
 	}
 }
 
-func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name string, override autoscalingv1.PodResourceOverride) (current *autoscalingv1.ClusterResourceOverride, changed bool) {
+func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name string, override autoscalingv1.PodResourceOverride, deploymentOverrides *autoscalingv1.DeploymentOverrides) (current *autoscalingv1.ClusterResourceOverride, changed bool) {
 	changed = true
 	cluster := autoscalingv1.ClusterResourceOverride{
 		ObjectMeta: metav1.ObjectMeta{
@@ -61,6 +62,10 @@ func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 		Spec: autoscalingv1.ClusterResourceOverrideSpec{
 			PodResourceOverride: override,
 		},
+	}
+
+	if deploymentOverrides != nil {
+		cluster.Spec.DeploymentOverrides = *deploymentOverrides
 	}
 
 	var err error
@@ -331,4 +336,11 @@ func NewLimitRanges(t *testing.T, client kubernetes.Interface, namespace string,
 		require.NoError(t, err)
 	}
 	return
+}
+
+func GetDeployment(t *testing.T, client kubernetes.Interface, namespace, name string) *appsv1.Deployment {
+	deployment, err := client.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, deployment)
+	return deployment
 }
