@@ -44,12 +44,20 @@ type deploymentHandler struct {
 	deploy deploy.Interface
 }
 
-type Deployer interface {
-	Exists(namespace, name string) (object metav1.Object, err error)
-}
-
-func (c *deploymentHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
+
+	// Remove the DaemonSet if it exists; used prior to v4.17.0
+	dsName := c.asset.DaemonSet().Name()
+	dsNamespace := c.asset.Values().Namespace
+	if deleteErr := c.client.AppsV1().DaemonSets(dsNamespace).Delete(context.TODO(), dsName, metav1.DeleteOptions{}); deleteErr != nil && !k8serrors.IsNotFound(deleteErr) {
+		handleErr = fmt.Errorf("failed to delete DaemonSet - %s", deleteErr.Error())
+		return
+	} else if deleteErr == nil {
+		klog.V(2).Infof("DaemonSet %s in namespace %s deleted successfully", dsName, dsNamespace)
+		return
+	}
+
 	ensure := false
 
 	object, accessor, getErr := c.deploy.Get()
@@ -77,7 +85,7 @@ func (c *deploymentHandler) Handle(context *ReconcileRequestContext, original *a
 	}
 
 	if ensure {
-		object, accessor, handleErr = c.Ensure(context, original)
+		object, accessor, handleErr = c.Ensure(ctx, original)
 		if handleErr != nil {
 			return
 		}
