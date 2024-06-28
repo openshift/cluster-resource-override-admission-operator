@@ -54,6 +54,35 @@ spec:
                         type: integer
                         description: (optional, positive integer) If a container memory limit has been specified or defaulted, the CPU limit is overridden to a percentage of the memory limit, with a 100 percentage scaling 1Gi of RAM to equal 1 CPU core. This is processed prior to overriding CPU request (if configured).
                         minimum: 0
+              deploymentOverrides:
+                type: object
+                description: Deployment overrides for ClusterResourceOverrides.
+                properties:
+                  nodeSelector:
+                    type: object
+                    description: (optional) NodeSelector to apply to ClusterResourceOverrides deployments.
+                    additionalProperties:
+                      type: string
+                  tolerations:
+                    type: array
+                    description: (optional) Tolerations to apply to ClusterResourceOverrides deployments.
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                        operator:
+                          type: string
+                        value:
+                          type: string
+                        effect:
+                          type: string
+                        tolerationSeconds:
+                          type: integer
+                  replicas:
+                    type: integer
+                    description: (optional) Number of replicas for ClusterResourceOverrides deployments. This number must not exceed the number of nodes that can accommodate the replicas, considering tolerations, and node selectors.
+                    minimum: 0
           status:
             type: object
             description: The status of the ClusterResourceOverride

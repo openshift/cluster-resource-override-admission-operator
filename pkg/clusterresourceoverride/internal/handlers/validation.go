@@ -16,9 +16,14 @@ type validationHandler struct {
 func (c *validationHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
-	validationErr := original.Spec.PodResourceOverride.Spec.Validate()
-	if validationErr != nil {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.InvalidParameters, validationErr)
+	podResourceOverrideValidationErr := original.Spec.PodResourceOverride.Spec.Validate()
+	if podResourceOverrideValidationErr != nil {
+		handleErr = condition.NewInstallReadinessError(autoscalingv1.InvalidParameters, podResourceOverrideValidationErr)
+	}
+
+	deploymentOverridesValidationErr := original.Spec.DeploymentOverrides.Validate()
+	if deploymentOverridesValidationErr != nil {
+		handleErr = condition.NewInstallReadinessError(autoscalingv1.InvalidParameters, deploymentOverridesValidationErr)
 	}
 
 	return

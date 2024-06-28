@@ -133,6 +133,7 @@ spec:
             - patch
             - list
             - watch
+            - delete
         serviceAccountName: clusterresourceoverride-operator
       clusterPermissions:
       - rules:

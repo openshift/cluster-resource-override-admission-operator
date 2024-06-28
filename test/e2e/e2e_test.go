@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
@@ -310,7 +311,7 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 	}
 
 	t.Logf("setting webhook configuration - %s", configuration.String())
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override)
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
 	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
 
 	t.Log("waiting for webhook configuration to take effect")
@@ -359,7 +360,7 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 
 	t.Logf("initial configuration - %s", before.String())
 
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override)
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
 	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
 
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
@@ -376,7 +377,7 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 
 	t.Logf("final configuration - %s", after.String())
 
-	current, changed = helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override)
+	current, changed = helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
 	require.Equal(t, override.Spec.Hash(), current.Status.Hash.Configuration)
 
@@ -425,7 +426,7 @@ func TestClusterResourceOverrideAdmissionWithNoOptIn(t *testing.T) {
 		Spec: configuration,
 	}
 
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override)
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
 	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
 
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
@@ -458,4 +459,51 @@ func TestClusterResourceOverrideAdmissionWithNoOptIn(t *testing.T) {
 	defer disposer.Dispose()
 
 	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
+}
+
+func TestClusterResourceOverrideDeploymentOverrides(t *testing.T) {
+	client := helper.NewClient(t, options.config)
+
+	f := &helper.PreCondition{Client: client.Kubernetes}
+	f.MustHaveAdmissionRegistrationV1(t)
+
+	// Set up the CRD object with the desired configurations
+	configuration := autoscalingv1.PodResourceOverrideSpec{
+		LimitCPUToMemoryPercent:     200,
+		CPURequestToLimitPercent:    25,
+		MemoryRequestToLimitPercent: 50,
+	}
+	deploymentOverrides := autoscalingv1.DeploymentOverrides{
+		Replicas: ptr.To[int32](1),
+		NodeSelector: map[string]string{
+			"node-role.kubernetes.io/worker": "",
+		},
+		Tolerations: []corev1.Toleration{
+			{
+				Key:      "key",
+				Operator: corev1.TolerationOpEqual,
+				Value:    "value",
+				Effect:   corev1.TaintEffectNoSchedule,
+			},
+		},
+	}
+	override := autoscalingv1.PodResourceOverride{
+		Spec: configuration,
+	}
+
+	t.Logf("setting webhook configuration - %s", configuration.String())
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, &deploymentOverrides)
+	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
+
+	t.Log("waiting for webhook configuration to take effect")
+	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+
+	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
+	t.Log("webhook configuration has been set successfully")
+
+	// Verify the deployment created by the operator matches the deployment overrides
+	deployment := helper.GetDeployment(t, client.Kubernetes, "clusterresourceoverride-operator", "clusterresourceoverride")
+	require.Equal(t, *deployment.Spec.Replicas, *deploymentOverrides.Replicas)
+	require.Equal(t, deployment.Spec.Template.Spec.NodeSelector, deploymentOverrides.NodeSelector)
+	require.Equal(t, deployment.Spec.Template.Spec.Tolerations, deploymentOverrides.Tolerations)
 }
