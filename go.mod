@@ -1,6 +1,6 @@
 module github.com/openshift/cluster-resource-override-admission-operator
 
-go 1.21
+go 1.22
 
 require (
 	github.com/openshift/build-machinery-go v0.0.0-20230816154005-5a38e1bfd880
