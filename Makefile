@@ -13,6 +13,7 @@ GO_BUILD_BINDIR := bin
 GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 
 KUBECTL = kubectl
+CONTAINER_ENGINE ?= docker
 VERSION := 4.17
 
 OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
@@ -43,12 +44,16 @@ REGISTRY_SETUP_BINARY := bin/registry-setup
 $(REGISTRY_SETUP_BINARY): GO_BUILD_PACKAGES =./test/registry-setup/...
 $(REGISTRY_SETUP_BINARY): build
 
+BUILD_CMD := $(if $(filter $(CONTAINER_ENGINE),buildah),$(CONTAINER_ENGINE) bud,$(CONTAINER_ENGINE) build) -t $(DEV_IMAGE_REGISTRY):$(IMAGE_TAG) -f ./images/dev/Dockerfile.dev .
+DEV_IMAGE_REGISTRY ?= quay.io/redhat
+IMAGE_TAG ?= dev
+
 # build image for dev use.
 dev-image:
-	docker build -t $(DEV_IMAGE_REGISTRY):$(IMAGE_TAG) -f ./images/dev/Dockerfile.dev .
+	$(BUILD_CMD)
 
 dev-push:
-	docker push $(DEV_IMAGE_REGISTRY):$(IMAGE_TAG)
+	$(CONTAINER_ENGINE) push $(DEV_IMAGE_REGISTRY):$(IMAGE_TAG)
 
 .PHONY: vendor
 vendor:
