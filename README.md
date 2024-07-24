@@ -14,11 +14,11 @@ this adjusts the container `limit` and `request` to achieve the desired level of
 `ClusterResourceOverride` Admission Webhook Server is located at [cluster-resource-override-admission](https://github.com/openshift/cluster-resource-override-admission).
 
 ## Prerequisites
-- [git][git_tool]
-- [go][go_tool] version v1.12+.
-- [docker][docker_tool] version 17.03+.
-  - Alternatively [podman][podman_tool] `v1.2.0+` or [buildah][buildah_tool] `v1.7+`
-- [kubectl][kubectl_tool] version v1.11.3+.
+- [git](https://git-scm.com/)
+- [go](https://go.dev/) version `v1.22+`
+- [podman](https://podman.io/docs/installation) version `17.03+`
+  - Alternatively [docker](https://docs.docker.com/engine/install/) `v1.2.0+` or [buildah](https://github.com/containers/buildah/blob/main/install.md) `v1.7+`
+- [kubectl](https://kubernetes.io/docs/reference/kubectl/) version `v1.11.3+`
 - Access to a OpenShift v4.x cluster.
 
 ## Getting Started
@@ -63,6 +63,8 @@ spec:
 This repo ships with an example CR, you can directly apply the YAML resource as well. 
 ```bash
 kubectl apply -f artifacts/example/clusterresourceoverride-cr.yaml
+# or 
+# make create-cro-cr
 ```
 
 The operator watches for the custom resource(s) of `ClusterResourceOverride` type and will ensure that the 
@@ -78,12 +80,11 @@ metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
       {"apiVersion":"operator.autoscaling.openshift.io/v1","kind":"ClusterResourceOverride","metadata":{"annotations":{},"name":"cluster"},"spec":{"podResourceOverride":{"spec":{"cpuRequestToLimitPercent":25,"limitCPUToMemoryPercent":200,"memoryRequestToLimitPercent":50}}}}
-  creationTimestamp: "2019-12-18T22:35:02Z"
+  creationTimestamp: "2024-07-24T17:49:53Z"
   generation: 1
   name: cluster
-  resourceVersion: "127622"
-  selfLink: /apis/operator.autoscaling.openshift.io/v1/clusterresourceoverrides/cluster
-  uid: 978fc959-1717-4bd1-97d0-ae00ee111e8d
+  resourceVersion: "61017"
+  uid: f75c6946-a556-429f-a1f6-99fe31368cb8
 spec:
   podResourceOverride:
     spec:
@@ -91,53 +92,51 @@ spec:
       limitCPUToMemoryPercent: 200
       memoryRequestToLimitPercent: 50
 status:
-  certsRotateAt: "2020-12-15T22:52:46Z"
+  certsRotateAt: null
   conditions:
-  - lastTransitionTime: "2019-12-18T23:27:03Z"
+  - lastTransitionTime: "2024-07-24T17:50:03Z"
     status: "True"
     type: Available
-  - lastTransitionTime: "2019-12-18T23:27:03Z"
+  - lastTransitionTime: "2024-07-24T17:50:02Z"
     status: "False"
     type: InstallReadinessFailure
   hash:
     configuration: 577fe3d2b05619ac326571a3504857e3e7e70a275c941e3397aa9db5c1a1d3a4
-    servingCert: bae6f72e906e9b054d0f4eb4b1540755f284373ad2febdec8454521ebfac5765
-  image: docker.io/tohinkashem/clusterresourceoverride@sha256:f99ed0d7ecf197596bb34eed342ddc8a9169f68b68a457ee5a15070bc68e848a
+  image: quay.io/macao/clusterresourceoverride:dev
   resources:
+    apiServiceRef:
+      apiVersion: apiregistration.k8s.io/v1
+      kind: APIService
+      name: v1.admission.autoscaling.openshift.io
+      resourceVersion: "60981"
+      uid: 79385b4e-43bb-4b14-b145-d50399db4ad8
     configurationRef:
       apiVersion: v1
       kind: ConfigMap
       name: clusterresourceoverride-configuration
-      namespace: cro
-      resourceVersion: "78476"
-      uid: e8a7f90e-90b1-4f2b-9b03-0064ffd33d4b
+      namespace: clusterresourceoverride-operator
+      resourceVersion: "60858"
+      uid: a50a2095-bab9-4834-8be3-633028c35f9e
     deploymentRef:
       apiVersion: apps/v1
-      kind: DaemonSet
+      kind: Deployment
       name: clusterresourceoverride
-      namespace: cro
-      resourceVersion: "78676"
-      uid: 947ebfc5-c244-4621-acc3-c3117a10a97b
+      namespace: clusterresourceoverride-operator
+      resourceVersion: "61013"
+      uid: 4f21e033-e806-48e0-b053-0bbb9d6f688d
     mutatingWebhookConfigurationRef:
       apiVersion: admissionregistration.k8s.io/v1
       kind: MutatingWebhookConfiguration
       name: clusterresourceoverrides.admission.autoscaling.openshift.io
-      resourceVersion: "127621"
-      uid: 98b3b8ae-d5ce-462b-8ab5-a729ea8f38f3
-    serviceCAConfigMapRef:
+      resourceVersion: "61016"
+      uid: 4fd5e040-9445-48de-9ea6-0d7028e5ab5c
+    serviceRef:
       apiVersion: v1
-      kind: ConfigMap
-      name: clusterresourceoverride-service-serving
-      namespace: cro
-      resourceVersion: "78479"
-      uid: faf27927-0fb0-453b-8656-1b05ea9a3d74
-    serviceCertSecretRef:
-      apiVersion: v1
-      kind: Secret
-      name: server-serving-cert-clusterresourceoverride
-      namespace: cro
-      resourceVersion: "78478"
-      uid: cc6efc0e-0fce-4148-a943-6045dadaa72c
+      kind: Service
+      name: clusterresourceoverride
+      namespace: clusterresourceoverride-operator
+      resourceVersion: "60876"
+      uid: 1e343ec2-8c71-4cbc-a236-8c9c3a791db2
   version: 1.0.0
 ```
 
@@ -156,7 +155,9 @@ metadata:
 * Create a `Pod` in the above namespace. The `requests` and `limits` of the `Pod's` `resources` are overridden according to the configuration of the webhook server.
 ```bash
 kubectl apply -f artifacts/example/test-namespace.yaml
-kubectl apply -f artifacts/example/test-pod.yaml    
+kubectl apply -f artifacts/example/test-pod.yaml
+# or
+# make create-test-pod
 ```
 
 The original request of the `Pod` has the following `resources` section. 
@@ -199,13 +200,17 @@ You can also deploy the operator on an OpenShift cluster:
 make build
 
 # build and push operator image
-make dev-image DEV_IMAGE_REGISTRY=docker.io/{your org}/clusterresourceoverride-operator IMAGE_TAG=dev
-make dev-push DEV_IMAGE_REGISTRY=docker.io/{your org}/clusterresourceoverride-operator IMAGE_TAG=dev
+make local-image LOCAL_OPERATOR_IMAGE="{operator image}"
+make local-push LOCAL_OPERATOR_IMAGE="{operator image}"
 
 # deploy on local cluster
-# CLUSTERRESOURCEOVERRIDE_OPERAND_IMAGE: operator image
-# CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE: operand image
-make deploy-local CLUSTERRESOURCEOVERRIDE_OPERAND_IMAGE="{operand image}" CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE="{operator image}
+# LOCAL_OPERAND_IMAGE: operand image
+# LOCAL_OPERATOR_IMAGE: operator image
+make deploy-local LOCAL_OPERAND_IMAGE="{operand image}" LOCAL_OPERATOR_IMAGE="{operator image}"
+```
+Delete the operator and its resources.
+```bash
+make undeploy-local
 ```
 
 ## Deploy via OLM
@@ -239,4 +244,14 @@ kubectl apply -f artifacts/olm/subscription.yaml
 
 # install the ClusterResourceOverride admission webhook server by creating a custom resource
 kubectl apply -f artifacts/example/clusterresourceoverride-cr.yaml 
+```
+## E2E Tests
+
+To run local E2E tests, you need to have a running OpenShift cluster and the following environment variables set:
+* `KUBECONFIG`: path to the kubeconfig file.
+* `LOCAL_OPERATOR_IMAGE`: operator image.
+* `LOCAL_OPERAND_IMAGE`: operand image.
+
+```bash
+make e2e-local KUBECONFIG={path to kubeconfig} LOCAL_OPERATOR_IMAGE={operator image} LOCAL_OPERAND_IMAGE={operand image}
 ```
