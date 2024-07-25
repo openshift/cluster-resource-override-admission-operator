@@ -1,4 +1,4 @@
-FROM golang:1.16
+FROM registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.22-openshift-4.17
 
 WORKDIR /go/src/github.com/openshift/cluster-resource-override-admission-operator
 
@@ -10,6 +10,8 @@ COPY boilerplate.go.txt boilerplate.go.txt
 
 # To avoid running into the following issue.
 # /bin/sh: 1: ./vendor/k8s.io/code-generator/generate-internal-groups.sh: Permission denied
-RUN chmod a+x vendor/k8s.io/code-generator/generate-internal-groups.sh
+
+# TODO(macao): Remove this old form of code-generation once we upgrade to operator-sdk
+RUN chmod a+x vendor/k8s.io/code-generator/kube_codegen.sh
 
 RUN make codegen-internal

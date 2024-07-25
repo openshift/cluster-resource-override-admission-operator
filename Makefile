@@ -12,18 +12,25 @@ GO=GO111MODULE=on GOFLAGS=-mod=vendor go
 GO_BUILD_BINDIR := bin
 GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 
-KUBECTL = kubectl
-VERSION := 4.17
+KUBECTL ?= kubectl
+CONTAINER_ENGINE ?= podman
+IMAGE_BUILDER ?= $(CONTAINER_ENGINE) # can support podman, docker, and buildah
+IMAGE_VERSION := 4.17
 
 OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
 
-export OLD_OPERATOR_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8-operator:$(VERSION)
-export OLD_OPERAND_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8:$(VERSION)
+export OLD_OPERATOR_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8-operator:$(IMAGE_VERSION)
+export OLD_OPERAND_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8:$(IMAGE_VERSION)
 export CSV_FILE_PATH_IN_REGISTRY_IMAGE 	= /manifests/stable/clusterresourceoverride-operator.clusterserviceversion.yaml
 
-LOCAL_OPERATOR_IMAGE	?= quay.io/redhat/clusterresourceoverride-operator:latest
-LOCAL_OPERAND_IMAGE 	?= quay.io/redhat/clusterresourceoverride:latest
+OPERATOR_IMAGE_TAG_BASE ?= quay.io/redhat/clusterresourceoverride-operator
+OPERAND_IMAGE_TAG_BASE ?= quay.io/redhat/clusterresourceoverride
+
+LOCAL_OPERATOR_IMAGE ?= $(OPERATOR_IMAGE_TAG_BASE):$(IMAGE_VERSION)
+LOCAL_OPERAND_IMAGE ?= $(OPERAND_IMAGE_TAG_BASE):$(IMAGE_VERSION)
+LOCAL_OPERATOR_REGISTRY_IMAGE ?= $(OPERATOR_IMAGE_TAG_BASE)-registry:$(IMAGE_VERSION)
+
 export LOCAL_OPERATOR_IMAGE
 export LOCAL_OPERAND_IMAGE
 export LOCAL_OPERATOR_REGISTRY_IMAGE
@@ -43,12 +50,12 @@ REGISTRY_SETUP_BINARY := bin/registry-setup
 $(REGISTRY_SETUP_BINARY): GO_BUILD_PACKAGES =./test/registry-setup/...
 $(REGISTRY_SETUP_BINARY): build
 
-# build image for dev use.
-dev-image:
-	docker build -t $(DEV_IMAGE_REGISTRY):$(IMAGE_TAG) -f ./images/dev/Dockerfile.dev .
+# build local image for dev use.
+local-image:
+	$(IMAGE_BUILDER) build -t $(LOCAL_OPERATOR_IMAGE) -f ./images/dev/Dockerfile.dev .
 
-dev-push:
-	docker push $(DEV_IMAGE_REGISTRY):$(IMAGE_TAG)
+local-push:
+	$(IMAGE_BUILDER) push $(LOCAL_OPERATOR_IMAGE)
 
 .PHONY: vendor
 vendor:
@@ -81,20 +88,23 @@ operator-registry-deploy-ci: operator-registry-generate operator-registry-deploy
 
 # TODO: Use alpha-build-machinery for codegen
 PKG=github.com/openshift/cluster-resource-override-admission-operator
-CODEGEN_INTERNAL:=./vendor/k8s.io/code-generator/generate-internal-groups.sh
+CODEGEN_INTERNAL:=./vendor/k8s.io/code-generator/kube_codegen.sh
 
 codegen:
-	docker build -t cro:codegen -f Dockerfile.codegen .
-	docker run --name cro-codegen cro:codegen /bin/true
-	docker cp cro-codegen:/go/src/github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/. ./pkg/generated
-	docker cp cro-codegen:/go/src/github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/. ./pkg/apis
-	docker rm cro-codegen
+	$(IMAGE_BUILDER) build -t cro:codegen -f Dockerfile.codegen .
+	$(CONTAINER_ENGINE) run --name cro-codegen cro:codegen /bin/true
+	$(CONTAINER_ENGINE) cp cro-codegen:/go/src/github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/. ./pkg/generated
+	$(CONTAINER_ENGINE) cp cro-codegen:/go/src/github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/. ./pkg/apis
+	$(CONTAINER_ENGINE) rm cro-codegen
 
 codegen-internal: export GO111MODULE := off
 codegen-internal:
 	mkdir -p vendor/k8s.io/code-generator/hack
 	cp boilerplate.go.txt vendor/k8s.io/code-generator/hack/boilerplate.go.txt
 	$(CODEGEN_INTERNAL) deepcopy,conversion,client,lister,informer $(PKG)/pkg/generated $(PKG)/pkg/apis $(PKG)/pkg/apis "autoscaling:v1"
+
+deploy-local: DEPLOY_MODE := local
+deploy-local: deploy
 
 # deploy the operator using kube manifests (no OLM)
 deploy: KUBE_MANIFESTS_SOURCE := "$(ARTIFACTS)/deploy"
@@ -112,6 +122,9 @@ deploy:
 	./hack/update-image-url.sh "$(CONFIGMAP_ENV_FILE)" "$(DEPLOYMENT_YAML)"
 
 	$(KUBECTL) apply -n $(OPERATOR_NAMESPACE) -f $(KUBE_MANIFESTS_DIR)
+
+undeploy-local: delete-test-pod delete-cro-cr
+	$(KUBECTL) delete -f $(KUBE_MANIFESTS_DIR)
 
 # run e2e test(s)
 e2e:
@@ -169,12 +182,12 @@ operator-registry-deploy: bin/yaml2json
 
 
 # build operator registry image for ci locally (used for local e2e test only)
-# local e2e test is done exactly the same way as ci with the exception that
+# local e2e test is done exactly the same way as ci withoperator-registry-image the exception that
 # in ci the operator registry image is built by ci agent.
 # on the other hand, in local mode, we need to build the image.
 operator-registry-image-ci:
-	docker build --build-arg VERSION=$(VERSION) -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry.ci .
-	docker push $(LOCAL_OPERATOR_REGISTRY_IMAGE)
+	$(IMAGE_BUILDER) build --build-arg VERSION=$(IMAGE_VERSION) -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry.ci .
+	$(IMAGE_BUILDER) push $(LOCAL_OPERATOR_REGISTRY_IMAGE)
 
 # build and push the OLM manifests for this operator into an operator-registry image.
 # this builds an image with the generated database, (unlike image used for ci)
@@ -188,5 +201,23 @@ operator-registry-image:
 	sed "s,$(OLD_OPERATOR_IMAGE_URL_IN_CSV),$(LOCAL_OPERATOR_IMAGE),g" -i "$(CSV_FILE)"
 	sed "s,$(OLD_OPERAND_IMAGE_URL_IN_CSV),$(LOCAL_OPERAND_IMAGE),g" -i "$(CSV_FILE)"
 
-	docker build --build-arg MANIFEST_LOCATION=$(MANIFESTS_DIR) -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry .
-	docker push $(LOCAL_OPERATOR_REGISTRY_IMAGE)
+	$(IMAGE_BUILDER) build --build-arg MANIFEST_LOCATION=$(MANIFESTS_DIR) -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry .
+	$(IMAGE_BUILDER) push $(LOCAL_OPERATOR_REGISTRY_IMAGE)
+
+create-cro-cr:
+	$(KUBECTL) apply -f ./artifacts/example/clusterresourceoverride-cr.yaml
+
+delete-cro-cr: delete-api-resources
+delete-cro-cr:
+	$(KUBECTL) delete -f ./artifacts/example/clusterresourceoverride-cr.yaml --ignore-not-found
+
+create-test-pod:
+	$(KUBECTL) apply -f ./artifacts/example/test-namespace.yaml
+	$(KUBECTL) apply -f ./artifacts/example/test-pod.yaml
+
+delete-test-pod:
+	$(KUBECTL) delete -f ./artifacts/example/test-pod.yaml --ignore-not-found
+	$(KUBECTL) delete -f ./artifacts/example/test-namespace.yaml --ignore-not-found
+
+delete-api-resources:
+	$(KUBECTL) delete apiservice v1.admission.autoscaling.openshift.io --ignore-not-found

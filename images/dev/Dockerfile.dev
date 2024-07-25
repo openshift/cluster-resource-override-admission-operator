@@ -1,4 +1,4 @@
-FROM centos:7
+FROM registry.access.redhat.com/ubi9-minimal:9.4
 
 ADD bin/cluster-resource-override-admission-operator /usr/bin
 
