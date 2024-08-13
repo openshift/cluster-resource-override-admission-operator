@@ -357,6 +357,9 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	override := autoscalingv1.PodResourceOverride{
 		Spec: before,
 	}
+	croSpec := autoscalingv1.ClusterResourceOverrideSpec{
+		PodResourceOverride: override,
+	}
 
 	t.Logf("initial configuration - %s", before.String())
 
@@ -364,7 +367,7 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
 
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-	require.Equal(t, override.Spec.Hash(), current.Status.Hash.Configuration)
+	require.Equal(t, croSpec.Hash(), current.Status.Hash.Configuration)
 
 	after := autoscalingv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     50,
@@ -374,12 +377,13 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	override = autoscalingv1.PodResourceOverride{
 		Spec: after,
 	}
+	croSpec.PodResourceOverride = override
 
 	t.Logf("final configuration - %s", after.String())
 
 	current, changed = helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-	require.Equal(t, override.Spec.Hash(), current.Status.Hash.Configuration)
+	require.Equal(t, croSpec.Hash(), current.Status.Hash.Configuration)
 
 	// create a new Pod, we expect the Pod resources to be overridden based of the new configuration.
 	ns, disposer := helper.NewNamespace(t, client.Kubernetes, "croe2e", true)
