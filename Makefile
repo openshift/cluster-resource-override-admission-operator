@@ -123,8 +123,10 @@ deploy:
 
 	$(KUBECTL) apply -n $(OPERATOR_NAMESPACE) -f $(KUBE_MANIFESTS_DIR)
 
-undeploy-local: delete-test-pod delete-cro-cr
-	$(KUBECTL) delete -f $(KUBE_MANIFESTS_DIR)
+# Alias for undeploy-local
+undeploy: undeploy-local
+undeploy-local: delete-test-pod
+	$(KUBECTL) delete -f $(KUBE_MANIFESTS_DIR) --ignore-not-found
 
 # run e2e test(s)
 e2e:
