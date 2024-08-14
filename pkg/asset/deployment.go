@@ -8,6 +8,34 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+var tolerationSeconds = int64(120)
+
+var DefaultReplicas int32 = 2
+
+var DefaultNodeSelector = map[string]string{
+	"node-role.kubernetes.io/master": "",
+}
+
+var DefaultTolerations = []corev1.Toleration{
+	{
+		Key:      "node-role.kubernetes.io/master",
+		Operator: corev1.TolerationOpExists,
+		Effect:   corev1.TaintEffectNoSchedule,
+	},
+	{
+		Key:               "node.kubernetes.io/unreachable",
+		Operator:          corev1.TolerationOpExists,
+		Effect:            corev1.TaintEffectNoExecute,
+		TolerationSeconds: &tolerationSeconds,
+	},
+	{
+		Key:               "node.kubernetes.io/not-ready",
+		Operator:          corev1.TolerationOpExists,
+		Effect:            corev1.TaintEffectNoExecute,
+		TolerationSeconds: &tolerationSeconds,
+	},
+}
+
 func (a *Asset) Deployment() *deployment {
 	return &deployment{
 		asset: a,
@@ -23,8 +51,8 @@ func (d *deployment) Name() string {
 }
 
 func (d *deployment) New() *appsv1.Deployment {
-	var replicas int32 = 2
-	tolerationSeconds := int64(120)
+	maxUnavailable := intstr.FromInt32(1)
+	maxSurge := intstr.FromInt32(0)
 	values := d.asset.Values()
 
 	return &appsv1.Deployment{
@@ -40,10 +68,17 @@ func (d *deployment) New() *appsv1.Deployment {
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
+			Replicas: &DefaultReplicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					values.SelectorLabelKey: values.SelectorLabelValue,
+				},
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxUnavailable: &maxUnavailable,
+					MaxSurge:       &maxSurge,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -54,9 +89,7 @@ func (d *deployment) New() *appsv1.Deployment {
 					},
 				},
 				Spec: corev1.PodSpec{
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
+					NodeSelector:       DefaultNodeSelector,
 					ServiceAccountName: values.ServiceAccountName,
 					Containers: []corev1.Container{
 						{
@@ -140,25 +173,7 @@ func (d *deployment) New() *appsv1.Deployment {
 							},
 						},
 					},
-					Tolerations: []corev1.Toleration{
-						{
-							Key:      "node-role.kubernetes.io/master",
-							Operator: corev1.TolerationOpExists,
-							Effect:   corev1.TaintEffectNoSchedule,
-						},
-						{
-							Key:               "node.kubernetes.io/unreachable",
-							Operator:          corev1.TolerationOpExists,
-							Effect:            corev1.TaintEffectNoExecute,
-							TolerationSeconds: &tolerationSeconds,
-						},
-						{
-							Key:               "node.kubernetes.io/not-ready",
-							Operator:          corev1.TolerationOpExists,
-							Effect:            corev1.TaintEffectNoExecute,
-							TolerationSeconds: &tolerationSeconds,
-						},
-					},
+					Tolerations: DefaultTolerations,
 					Affinity: &corev1.Affinity{
 						PodAntiAffinity: &corev1.PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{

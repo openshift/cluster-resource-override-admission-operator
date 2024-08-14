@@ -2,7 +2,6 @@ package handlers
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
@@ -61,7 +60,7 @@ func (c *configurationHandler) Handle(context *ReconcileRequestContext, original
 	}
 
 	equal := false
-	hash := original.Spec.PodResourceOverride.Spec.Hash()
+	hash := original.Spec.Hash()
 	if hash == current.Status.Hash.Configuration {
 		equal = true
 	}
@@ -112,18 +111,5 @@ func (c *configurationHandler) NewConfiguration(context *ReconcileRequestContext
 	}
 	configuration.Data[c.asset.Values().ConfigurationKey] = string(bytes)
 
-	return
-}
-
-func (c *configurationHandler) IsConfigurationEqual(current *corev1.ConfigMap, this *autoscalingv1.PodResourceOverride) (equal bool, err error) {
-	observed := current.Data[c.asset.Values().ConfigurationKey]
-
-	other := &autoscalingv1.PodResourceOverride{}
-	err = yaml.Unmarshal([]byte(observed), other)
-	if err != nil {
-		return
-	}
-
-	equal = equality.Semantic.DeepEqual(this, other)
 	return
 }
