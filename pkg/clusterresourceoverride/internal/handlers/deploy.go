@@ -54,7 +54,7 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 		handleErr = fmt.Errorf("failed to delete DaemonSet - %s", deleteErr.Error())
 		return
 	} else if deleteErr == nil {
-		klog.V(2).Infof("DaemonSet %s in namespace %s deleted successfully", dsName, dsNamespace)
+		klog.V(2).Infof("Dangling DaemonSet %s in namespace %s deleted successfully", dsName, dsNamespace)
 		return
 	}
 
@@ -170,12 +170,12 @@ func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContex
 		podTemplateSpec.GetAnnotations()[values.ConfigurationHashAnnotationKey] = cro.Status.Hash.Configuration
 		podTemplateSpec.GetAnnotations()[values.ServingCertHashAnnotationKey] = cro.Status.Hash.ServingCert
 
-		// Replaces nodeSelector, if specified in the CRD
+		// Replaces nodeSelector, if specified in the CR
 		if len(cro.Spec.DeploymentOverrides.NodeSelector) > 0 {
 			podTemplateSpec.Spec.NodeSelector = cro.Spec.DeploymentOverrides.NodeSelector
 		}
 
-		// Replaces tolerations, if specified in the CRD
+		// Replaces tolerations, if specified in the CR
 		if len(cro.Spec.DeploymentOverrides.Tolerations) > 0 {
 			podTemplateSpec.Spec.Tolerations = cro.Spec.DeploymentOverrides.Tolerations
 		}
