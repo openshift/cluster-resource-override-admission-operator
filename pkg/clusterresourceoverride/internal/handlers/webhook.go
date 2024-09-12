@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/ensurer"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 

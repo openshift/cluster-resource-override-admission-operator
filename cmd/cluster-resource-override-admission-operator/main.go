@@ -12,10 +12,12 @@ import (
 	"github.com/spf13/pflag"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 )
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
+	klog.InitFlags(nil)
 
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)

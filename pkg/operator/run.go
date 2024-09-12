@@ -2,10 +2,11 @@ package operator
 
 import (
 	"fmt"
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
-	"k8s.io/klog"
 	"net/http"
 	"time"
+
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
+	"k8s.io/klog/v2"
 
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/controller"

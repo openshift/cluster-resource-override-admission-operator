@@ -1,11 +1,12 @@
 package condition
 
 import (
+	"time"
+
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/clock"
-	"time"
+	"k8s.io/utils/clock"
 )
 
 func NewBuilderWithStatus(status *autoscalingv1.ClusterResourceOverrideStatus) *Builder {
