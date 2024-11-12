@@ -15,7 +15,7 @@ GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 KUBECTL ?= kubectl
 CONTAINER_ENGINE ?= podman
 IMAGE_BUILDER ?= $(CONTAINER_ENGINE) # can support podman, docker, and buildah
-IMAGE_VERSION := 4.17
+IMAGE_VERSION := 4.18
 
 OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
