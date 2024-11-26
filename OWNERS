@@ -1,6 +1,6 @@
 approvers:
 - joelsmith
-- jkyros
+- maxcao13
 
 # Bugzilla fields:
 component: Pod Autoscaler
