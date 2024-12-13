@@ -21,7 +21,6 @@ const (
 	ConfigurationCheckFailed     = "ConfigurationCheckFailed"
 	CertNotAvailable             = "CertNotAvailable"
 	CannotSetReference           = "CannotSetReference"
-	CannotGenerateCert           = "CannotGenerateCert"
 	InternalError                = "InternalError"
 	AdmissionWebhookNotAvailable = "AdmissionWebhookNotAvailable"
 	DeploymentNotReady           = "DeploymentNotReady"
@@ -76,7 +75,6 @@ type ClusterResourceOverrideStatus struct {
 
 type ClusterResourceOverrideResourceHash struct {
 	Configuration string `json:"configuration,omitempty"`
-	ServingCert   string `json:"servingCert,omitempty"`
 }
 
 type ClusterResourceOverrideResources struct {
@@ -84,19 +82,11 @@ type ClusterResourceOverrideResources struct {
 	// ClusterResourceOverride admission webhook.
 	ConfigurationRef *corev1.ObjectReference `json:"configurationRef,omitempty"`
 
-	// ServiceCAConfigMapRef points to the ConfigMap that is injected with a
-	// data item (key "service-ca.crt") containing the PEM-encoded CA signing bundle.
-	ServiceCAConfigMapRef *corev1.ObjectReference `json:"serviceCAConfigMapRef,omitempty"`
-
 	// ServiceRef points to the Service object that exposes the ClusterResourceOverride
 	// webhook admission server to the cluster.
 	// This service is annotated with `service.beta.openshift.io/serving-cert-secret-name`
 	// so that service-ca operator can issue a signed serving certificate/key pair.
 	ServiceRef *corev1.ObjectReference `json:"serviceRef,omitempty"`
-
-	// ServiceCertSecretRef points to the Secret object which is created by the
-	// service-ca operator and contains the signed serving certificate/key pair.
-	ServiceCertSecretRef *corev1.ObjectReference `json:"serviceCertSecretRef,omitempty"`
 
 	// DeploymentRef points to the Deployment object of the ClusterResourceOverride
 	// admission webhook server.

@@ -128,18 +128,8 @@ func (in *ClusterResourceOverrideResources) DeepCopyInto(out *ClusterResourceOve
 		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
-	if in.ServiceCAConfigMapRef != nil {
-		in, out := &in.ServiceCAConfigMapRef, &out.ServiceCAConfigMapRef
-		*out = new(corev1.ObjectReference)
-		**out = **in
-	}
 	if in.ServiceRef != nil {
 		in, out := &in.ServiceRef, &out.ServiceRef
-		*out = new(corev1.ObjectReference)
-		**out = **in
-	}
-	if in.ServiceCertSecretRef != nil {
-		in, out := &in.ServiceCertSecretRef, &out.ServiceCertSecretRef
 		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
