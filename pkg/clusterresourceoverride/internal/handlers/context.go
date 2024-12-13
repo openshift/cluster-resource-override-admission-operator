@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
-	"github.com/openshift/cluster-resource-override-admission-operator/pkg/cert"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/deploy"
 	autoscalingv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
@@ -26,15 +25,6 @@ type Options struct {
 
 type ReconcileRequestContext struct {
 	operatorruntime.OperandContext
-	bundle *cert.Bundle
-}
-
-func (r *ReconcileRequestContext) SetBundle(bundle *cert.Bundle) {
-	r.bundle = bundle
-}
-
-func (r *ReconcileRequestContext) GetBundle() *cert.Bundle {
-	return r.bundle
 }
 
 func (r *ReconcileRequestContext) ControllerSetter() operatorruntime.SetControllerFunc {
