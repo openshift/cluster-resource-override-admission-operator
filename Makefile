@@ -91,22 +91,11 @@ deploy-olm-ci: operator-registry-deploy-ci olm-generate olm-apply
 operator-registry-deploy-local: operator-registry-generate operator-registry-image operator-registry-deploy
 operator-registry-deploy-ci: operator-registry-generate operator-registry-deploy
 
-# TODO: Use alpha-build-machinery for codegen
 PKG=github.com/openshift/cluster-resource-override-admission-operator
-CODEGEN_INTERNAL:=./vendor/k8s.io/code-generator/kube_codegen.sh
 
+# similar to make generate in operator-sdk/kubebuilder projects
 codegen:
-	$(IMAGE_BUILDER) build -t cro:codegen -f Dockerfile.codegen .
-	$(CONTAINER_ENGINE) run --name cro-codegen cro:codegen /bin/true
-	$(CONTAINER_ENGINE) cp cro-codegen:/go/src/github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/. ./pkg/generated
-	$(CONTAINER_ENGINE) cp cro-codegen:/go/src/github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/. ./pkg/apis
-	$(CONTAINER_ENGINE) rm cro-codegen
-
-codegen-internal: export GO111MODULE := off
-codegen-internal:
-	mkdir -p vendor/k8s.io/code-generator/hack
-	cp boilerplate.go.txt vendor/k8s.io/code-generator/hack/boilerplate.go.txt
-	$(CODEGEN_INTERNAL) deepcopy,conversion,client,lister,informer $(PKG)/pkg/generated $(PKG)/pkg/apis $(PKG)/pkg/apis "autoscaling:v1"
+	./hack/update-codegen.sh
 
 deploy-local: DEPLOY_MODE := local
 deploy-local: deploy

@@ -92,7 +92,6 @@ spec:
       limitCPUToMemoryPercent: 200
       memoryRequestToLimitPercent: 50
 status:
-  certsRotateAt: null
   conditions:
   - lastTransitionTime: "2024-07-24T17:50:03Z"
     status: "True"

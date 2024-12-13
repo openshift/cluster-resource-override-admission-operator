@@ -72,10 +72,6 @@ type ClusterResourceOverrideStatus struct {
 	Conditions []ClusterResourceOverrideCondition  `json:"conditions,omitempty" hash:"set"`
 	Version    string                              `json:"version,omitempty"`
 	Image      string                              `json:"image,omitempty"`
-
-	// CertsRotateAt is the time the serving certs will be rotated at.
-	// +optional
-	CertsRotateAt metav1.Time `json:"certsRotateAt,omitempty"`
 }
 
 type ClusterResourceOverrideResourceHash struct {
