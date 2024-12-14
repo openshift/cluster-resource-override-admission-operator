@@ -14,6 +14,11 @@ import (
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
 )
 
+const (
+	operatorNamespace = "clusterresourceoverride-operator"
+	configMapName     = "clusterresourceoverride-configuration"
+)
+
 func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -353,6 +358,7 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    10,
 		MemoryRequestToLimitPercent: 75,
+		ForceSelinuxRelabel:         false,
 	}
 	override := autoscalingv1.PodResourceOverride{
 		Spec: before,
@@ -373,13 +379,14 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 		LimitCPUToMemoryPercent:     50,
 		CPURequestToLimitPercent:    50,
 		MemoryRequestToLimitPercent: 50,
+		ForceSelinuxRelabel:         false,
 	}
 	override = autoscalingv1.PodResourceOverride{
 		Spec: after,
 	}
 	croSpec.PodResourceOverride = override
 
-	t.Logf("final configuration - %s", after.String())
+	t.Logf("second configuration - %s", after.String())
 
 	current, changed = helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
@@ -413,6 +420,26 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	defer disposer.Dispose()
 
 	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
+
+	// test changing ForceSelinuxRelabel changes the configuration hash and reconciles the configMap
+	after.ForceSelinuxRelabel = true
+	override = autoscalingv1.PodResourceOverride{
+		Spec: after,
+	}
+	croSpec.PodResourceOverride = override
+
+	t.Logf("final configuration: forceSelinuxRelabel - %s", after.String())
+
+	originalCm := helper.GetConfigMap(t, client.Kubernetes, operatorNamespace, configMapName)
+
+	current, changed = helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
+	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+	require.Equal(t, croSpec.Hash(), current.Status.Hash.Configuration)
+
+	cm := helper.WaitForConfigMap(t, client.Kubernetes, operatorNamespace, configMapName, originalCm)
+	rawData := cm.Data["configuration.yaml"]
+	require.Contains(t, rawData, "forceSelinuxRelabel: true")
+	require.NotContains(t, rawData, "forceSelinuxRelabel: false")
 }
 
 func TestClusterResourceOverrideAdmissionWithNoOptIn(t *testing.T) {
@@ -506,7 +533,7 @@ func TestClusterResourceOverrideDeploymentOverrides(t *testing.T) {
 	t.Log("webhook configuration has been set successfully")
 
 	// Verify the deployment created by the operator matches the deployment overrides
-	deployment := helper.GetDeployment(t, client.Kubernetes, "clusterresourceoverride-operator", "clusterresourceoverride")
+	deployment := helper.GetDeployment(t, client.Kubernetes, operatorNamespace, "clusterresourceoverride")
 	require.Equal(t, *deployment.Spec.Replicas, *deploymentOverrides.Replicas)
 	require.Equal(t, deployment.Spec.Template.Spec.NodeSelector, deploymentOverrides.NodeSelector)
 	require.Equal(t, deployment.Spec.Template.Spec.Tolerations, deploymentOverrides.Tolerations)
