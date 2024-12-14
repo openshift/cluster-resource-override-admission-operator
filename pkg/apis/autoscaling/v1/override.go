@@ -27,8 +27,8 @@ func (in *ClusterResourceOverride) IsTimeToRotateCert() bool {
 }
 
 func (in *PodResourceOverrideSpec) String() string {
-	return fmt.Sprintf("MemoryRequestToLimitPercent=%d, CPURequestToLimitPercent=%d LimitCPUToMemoryPercent=%d",
-		in.MemoryRequestToLimitPercent, in.CPURequestToLimitPercent, in.LimitCPUToMemoryPercent)
+	return fmt.Sprintf("MemoryRequestToLimitPercent=%d, CPURequestToLimitPercent=%d, LimitCPUToMemoryPercent=%d, ForceSelinuxRelabel=%t",
+		in.MemoryRequestToLimitPercent, in.CPURequestToLimitPercent, in.LimitCPUToMemoryPercent, in.ForceSelinuxRelabel)
 }
 
 func (in *PodResourceOverrideSpec) Validate() error {
