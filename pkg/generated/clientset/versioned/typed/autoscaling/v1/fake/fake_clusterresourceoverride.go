@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Red Hat, Inc.
+Copyright 2024 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,10 +21,9 @@ package fake
 import (
 	"context"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -35,34 +34,36 @@ type FakeClusterResourceOverrides struct {
 	Fake *FakeAutoscalingV1
 }
 
-var clusterresourceoverridesResource = schema.GroupVersionResource{Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterresourceoverrides"}
+var clusterresourceoverridesResource = v1.SchemeGroupVersion.WithResource("clusterresourceoverrides")
 
-var clusterresourceoverridesKind = schema.GroupVersionKind{Group: "autoscaling.openshift.io", Version: "v1", Kind: "ClusterResourceOverride"}
+var clusterresourceoverridesKind = v1.SchemeGroupVersion.WithKind("ClusterResourceOverride")
 
 // Get takes name of the clusterResourceOverride, and returns the corresponding clusterResourceOverride object, and an error if there is any.
-func (c *FakeClusterResourceOverrides) Get(ctx context.Context, name string, options v1.GetOptions) (result *autoscalingv1.ClusterResourceOverride, err error) {
+func (c *FakeClusterResourceOverrides) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ClusterResourceOverride, err error) {
+	emptyResult := &v1.ClusterResourceOverride{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(clusterresourceoverridesResource, name), &autoscalingv1.ClusterResourceOverride{})
+		Invokes(testing.NewRootGetActionWithOptions(clusterresourceoverridesResource, name, options), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
-	return obj.(*autoscalingv1.ClusterResourceOverride), err
+	return obj.(*v1.ClusterResourceOverride), err
 }
 
 // List takes label and field selectors, and returns the list of ClusterResourceOverrides that match those selectors.
-func (c *FakeClusterResourceOverrides) List(ctx context.Context, opts v1.ListOptions) (result *autoscalingv1.ClusterResourceOverrideList, err error) {
+func (c *FakeClusterResourceOverrides) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ClusterResourceOverrideList, err error) {
+	emptyResult := &v1.ClusterResourceOverrideList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterresourceoverridesResource, clusterresourceoverridesKind, opts), &autoscalingv1.ClusterResourceOverrideList{})
+		Invokes(testing.NewRootListActionWithOptions(clusterresourceoverridesResource, clusterresourceoverridesKind, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &autoscalingv1.ClusterResourceOverrideList{ListMeta: obj.(*autoscalingv1.ClusterResourceOverrideList).ListMeta}
-	for _, item := range obj.(*autoscalingv1.ClusterResourceOverrideList).Items {
+	list := &v1.ClusterResourceOverrideList{ListMeta: obj.(*v1.ClusterResourceOverrideList).ListMeta}
+	for _, item := range obj.(*v1.ClusterResourceOverrideList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -71,63 +72,67 @@ func (c *FakeClusterResourceOverrides) List(ctx context.Context, opts v1.ListOpt
 }
 
 // Watch returns a watch.Interface that watches the requested clusterResourceOverrides.
-func (c *FakeClusterResourceOverrides) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeClusterResourceOverrides) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(clusterresourceoverridesResource, opts))
+		InvokesWatch(testing.NewRootWatchActionWithOptions(clusterresourceoverridesResource, opts))
 }
 
 // Create takes the representation of a clusterResourceOverride and creates it.  Returns the server's representation of the clusterResourceOverride, and an error, if there is any.
-func (c *FakeClusterResourceOverrides) Create(ctx context.Context, clusterResourceOverride *autoscalingv1.ClusterResourceOverride, opts v1.CreateOptions) (result *autoscalingv1.ClusterResourceOverride, err error) {
+func (c *FakeClusterResourceOverrides) Create(ctx context.Context, clusterResourceOverride *v1.ClusterResourceOverride, opts metav1.CreateOptions) (result *v1.ClusterResourceOverride, err error) {
+	emptyResult := &v1.ClusterResourceOverride{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(clusterresourceoverridesResource, clusterResourceOverride), &autoscalingv1.ClusterResourceOverride{})
+		Invokes(testing.NewRootCreateActionWithOptions(clusterresourceoverridesResource, clusterResourceOverride, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
-	return obj.(*autoscalingv1.ClusterResourceOverride), err
+	return obj.(*v1.ClusterResourceOverride), err
 }
 
 // Update takes the representation of a clusterResourceOverride and updates it. Returns the server's representation of the clusterResourceOverride, and an error, if there is any.
-func (c *FakeClusterResourceOverrides) Update(ctx context.Context, clusterResourceOverride *autoscalingv1.ClusterResourceOverride, opts v1.UpdateOptions) (result *autoscalingv1.ClusterResourceOverride, err error) {
+func (c *FakeClusterResourceOverrides) Update(ctx context.Context, clusterResourceOverride *v1.ClusterResourceOverride, opts metav1.UpdateOptions) (result *v1.ClusterResourceOverride, err error) {
+	emptyResult := &v1.ClusterResourceOverride{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(clusterresourceoverridesResource, clusterResourceOverride), &autoscalingv1.ClusterResourceOverride{})
+		Invokes(testing.NewRootUpdateActionWithOptions(clusterresourceoverridesResource, clusterResourceOverride, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
-	return obj.(*autoscalingv1.ClusterResourceOverride), err
+	return obj.(*v1.ClusterResourceOverride), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeClusterResourceOverrides) UpdateStatus(ctx context.Context, clusterResourceOverride *autoscalingv1.ClusterResourceOverride, opts v1.UpdateOptions) (*autoscalingv1.ClusterResourceOverride, error) {
+func (c *FakeClusterResourceOverrides) UpdateStatus(ctx context.Context, clusterResourceOverride *v1.ClusterResourceOverride, opts metav1.UpdateOptions) (result *v1.ClusterResourceOverride, err error) {
+	emptyResult := &v1.ClusterResourceOverride{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(clusterresourceoverridesResource, "status", clusterResourceOverride), &autoscalingv1.ClusterResourceOverride{})
+		Invokes(testing.NewRootUpdateSubresourceActionWithOptions(clusterresourceoverridesResource, "status", clusterResourceOverride, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
-	return obj.(*autoscalingv1.ClusterResourceOverride), err
+	return obj.(*v1.ClusterResourceOverride), err
 }
 
 // Delete takes name of the clusterResourceOverride and deletes it. Returns an error if one occurs.
-func (c *FakeClusterResourceOverrides) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+func (c *FakeClusterResourceOverrides) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(clusterresourceoverridesResource, name), &autoscalingv1.ClusterResourceOverride{})
+		Invokes(testing.NewRootDeleteActionWithOptions(clusterresourceoverridesResource, name, opts), &v1.ClusterResourceOverride{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeClusterResourceOverrides) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(clusterresourceoverridesResource, listOpts)
+func (c *FakeClusterResourceOverrides) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionActionWithOptions(clusterresourceoverridesResource, opts, listOpts)
 
-	_, err := c.Fake.Invokes(action, &autoscalingv1.ClusterResourceOverrideList{})
+	_, err := c.Fake.Invokes(action, &v1.ClusterResourceOverrideList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched clusterResourceOverride.
-func (c *FakeClusterResourceOverrides) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *autoscalingv1.ClusterResourceOverride, err error) {
+func (c *FakeClusterResourceOverrides) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ClusterResourceOverride, err error) {
+	emptyResult := &v1.ClusterResourceOverride{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(clusterresourceoverridesResource, name, pt, data, subresources...), &autoscalingv1.ClusterResourceOverride{})
+		Invokes(testing.NewRootPatchSubresourceActionWithOptions(clusterresourceoverridesResource, name, pt, data, opts, subresources...), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
-	return obj.(*autoscalingv1.ClusterResourceOverride), err
+	return obj.(*v1.ClusterResourceOverride), err
 }

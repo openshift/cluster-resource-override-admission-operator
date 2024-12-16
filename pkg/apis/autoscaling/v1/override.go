@@ -9,22 +9,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func (in *ClusterResourceOverride) IsTimeToRotateCert() bool {
-	if in.Status.CertsRotateAt.IsZero() {
-		return true
-	}
-
-	now := metav1.Now()
-	if in.Status.CertsRotateAt.Before(&now) {
-		return true
-	}
-
-	return false
-}
 
 func (in *PodResourceOverrideSpec) String() string {
 	return fmt.Sprintf("MemoryRequestToLimitPercent=%d, CPURequestToLimitPercent=%d LimitCPUToMemoryPercent=%d",

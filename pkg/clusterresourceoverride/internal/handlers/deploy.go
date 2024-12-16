@@ -73,9 +73,6 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 	case accessor.GetAnnotations()[values.ConfigurationHashAnnotationKey] != current.Status.Hash.Configuration:
 		klog.V(2).Infof("key=%s resource=%T/%s configuration hash mismatch", original.Name, object, accessor.GetName())
 		ensure = true
-	case accessor.GetAnnotations()[values.ServingCertHashAnnotationKey] != current.Status.Hash.ServingCert:
-		klog.V(2).Infof("key=%s resource=%T/%s serving cert hash mismatch", original.Name, object, accessor.GetName())
-		ensure = true
 	case values.OperandImage != current.Status.Image:
 		klog.V(2).Infof("operand image mismatch: current: %s original: %s", current.Status.Image, values.OperandImage)
 		ensure = true
@@ -141,7 +138,6 @@ func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestCon
 		}
 
 		deployment.GetAnnotations()[values.ConfigurationHashAnnotationKey] = cro.Status.Hash.Configuration
-		deployment.GetAnnotations()[values.ServingCertHashAnnotationKey] = cro.Status.Hash.ServingCert
 
 		// Override replica count, if specified in the CRD
 		if cro.Spec.DeploymentOverrides.Replicas != nil {
@@ -168,7 +164,6 @@ func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContex
 
 		podTemplateSpec.GetAnnotations()[values.OwnerAnnotationKey] = cro.Name
 		podTemplateSpec.GetAnnotations()[values.ConfigurationHashAnnotationKey] = cro.Status.Hash.Configuration
-		podTemplateSpec.GetAnnotations()[values.ServingCertHashAnnotationKey] = cro.Status.Hash.ServingCert
 
 		// Replaces nodeSelector, if specified in the CR
 		if len(cro.Spec.DeploymentOverrides.NodeSelector) > 0 {

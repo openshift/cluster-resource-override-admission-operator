@@ -14,8 +14,12 @@ GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 
 KUBECTL ?= kubectl
 CONTAINER_ENGINE ?= podman
-IMAGE_BUILDER ?= $(CONTAINER_ENGINE) # can support podman, docker, and buildah
+# can support podman, docker, and buildah
+IMAGE_BUILDER ?= $(CONTAINER_ENGINE)
+# this is the version of the operator that should change with each release
 IMAGE_VERSION := 4.18
+# this is the image tag of your custom dev image
+IMAGE_TAG := dev
 
 OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
@@ -27,9 +31,9 @@ export CSV_FILE_PATH_IN_REGISTRY_IMAGE 	= /manifests/stable/clusterresourceoverr
 OPERATOR_IMAGE_TAG_BASE ?= quay.io/redhat/clusterresourceoverride-operator
 OPERAND_IMAGE_TAG_BASE ?= quay.io/redhat/clusterresourceoverride
 
-LOCAL_OPERATOR_IMAGE ?= $(OPERATOR_IMAGE_TAG_BASE):$(IMAGE_VERSION)
-LOCAL_OPERAND_IMAGE ?= $(OPERAND_IMAGE_TAG_BASE):$(IMAGE_VERSION)
-LOCAL_OPERATOR_REGISTRY_IMAGE ?= $(OPERATOR_IMAGE_TAG_BASE)-registry:$(IMAGE_VERSION)
+LOCAL_OPERATOR_IMAGE ?= $(OPERATOR_IMAGE_TAG_BASE):$(IMAGE_TAG)
+LOCAL_OPERAND_IMAGE ?= $(OPERAND_IMAGE_TAG_BASE):$(IMAGE_TAG)
+LOCAL_OPERATOR_REGISTRY_IMAGE ?= $(OPERATOR_IMAGE_TAG_BASE)-registry:$(IMAGE_TAG)
 
 export LOCAL_OPERATOR_IMAGE
 export LOCAL_OPERAND_IMAGE
@@ -80,28 +84,18 @@ e2e-ci: deploy e2e
 e2e-local: DEPLOY_MODE=local
 e2e-local: deploy e2e
 
+deploy-olm-local: DEPLOY_MODE := local
 deploy-olm-local: operator-registry-deploy-local olm-generate olm-apply
 deploy-olm-ci: operator-registry-deploy-ci olm-generate olm-apply
 
-operator-registry-deploy-local: operator-registry-generate operator-registry-image-ci operator-registry-deploy
+operator-registry-deploy-local: operator-registry-generate operator-registry-image operator-registry-deploy
 operator-registry-deploy-ci: operator-registry-generate operator-registry-deploy
 
-# TODO: Use alpha-build-machinery for codegen
 PKG=github.com/openshift/cluster-resource-override-admission-operator
-CODEGEN_INTERNAL:=./vendor/k8s.io/code-generator/kube_codegen.sh
 
+# similar to make generate in operator-sdk/kubebuilder projects
 codegen:
-	$(IMAGE_BUILDER) build -t cro:codegen -f Dockerfile.codegen .
-	$(CONTAINER_ENGINE) run --name cro-codegen cro:codegen /bin/true
-	$(CONTAINER_ENGINE) cp cro-codegen:/go/src/github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/. ./pkg/generated
-	$(CONTAINER_ENGINE) cp cro-codegen:/go/src/github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/. ./pkg/apis
-	$(CONTAINER_ENGINE) rm cro-codegen
-
-codegen-internal: export GO111MODULE := off
-codegen-internal:
-	mkdir -p vendor/k8s.io/code-generator/hack
-	cp boilerplate.go.txt vendor/k8s.io/code-generator/hack/boilerplate.go.txt
-	$(CODEGEN_INTERNAL) deepcopy,conversion,client,lister,informer $(PKG)/pkg/generated $(PKG)/pkg/apis $(PKG)/pkg/apis "autoscaling:v1"
+	./hack/update-codegen.sh
 
 deploy-local: DEPLOY_MODE := local
 deploy-local: deploy
@@ -127,6 +121,11 @@ deploy:
 undeploy: undeploy-local
 undeploy-local: delete-test-pod
 	$(KUBECTL) delete -f $(KUBE_MANIFESTS_DIR) --ignore-not-found
+
+undeploy-olm: delete-cro-cr
+	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OPERATOR_REGISTRY_MANIFESTS_DIR) --ignore-not-found
+	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OLM_MANIFESTS_DIR) --ignore-not-found
+	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(KUBE_MANIFESTS_DIR) --ignore-not-found
 
 # run e2e test(s)
 e2e:
@@ -191,19 +190,9 @@ operator-registry-image-ci:
 	$(IMAGE_BUILDER) build --build-arg VERSION=$(IMAGE_VERSION) -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry.ci .
 	$(IMAGE_BUILDER) push $(LOCAL_OPERATOR_REGISTRY_IMAGE)
 
-# build and push the OLM manifests for this operator into an operator-registry image.
-# this builds an image with the generated database, (unlike image used for ci)
-operator-registry-image: MANIFESTS_DIR := "$(OUTPUT_DIR)/manifests"
-operator-registry-image: CSV_FILE := "$(MANIFESTS_DIR)/stable/clusterresourceoverride-operator.clusterserviceversion.yaml"
+# same as operator-registry-image-ci but use a dev tag instead of a VERSION which should stay consistent
 operator-registry-image:
-	rm -rf $(MANIFESTS_DIR)
-	mkdir -p $(MANIFESTS_DIR)
-	cp -r manifests/* $(MANIFESTS_DIR)/
-
-	sed "s,$(OLD_OPERATOR_IMAGE_URL_IN_CSV),$(LOCAL_OPERATOR_IMAGE),g" -i "$(CSV_FILE)"
-	sed "s,$(OLD_OPERAND_IMAGE_URL_IN_CSV),$(LOCAL_OPERAND_IMAGE),g" -i "$(CSV_FILE)"
-
-	$(IMAGE_BUILDER) build --build-arg MANIFEST_LOCATION=$(MANIFESTS_DIR) -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry .
+	$(IMAGE_BUILDER) build --build-arg VERSION=$(IMAGE_TAG) -t $(LOCAL_OPERATOR_REGISTRY_IMAGE) -f images/operator-registry/Dockerfile.registry.ci .
 	$(IMAGE_BUILDER) push $(LOCAL_OPERATOR_REGISTRY_IMAGE)
 
 create-cro-cr:

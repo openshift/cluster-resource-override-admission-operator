@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 # This shell script substitues the operator and operand image urls in the specified
 # ClusterServiceVersion file with the desired values.
@@ -25,8 +25,8 @@ sed "s,${OLD_OPERAND_IMAGE_URL_IN_CSV},${OPERAND_IMAGE_URL},g" -i "${CSV_FILE_PA
 
 echo "substitution complete"
 
-cat ${CSV_FILE_PATH_IN_REGISTRY_IMAGE} | grep -C 2 "${OPERATOR_IMAGE_URL}"
-cat ${CSV_FILE_PATH_IN_REGISTRY_IMAGE} | grep -C 2 "${OPERAND_IMAGE_URL}"
+grep -C 2 "${OPERATOR_IMAGE_URL}" "${CSV_FILE_PATH_IN_REGISTRY_IMAGE}"
+grep -C 2 "${OPERAND_IMAGE_URL}" "${CSV_FILE_PATH_IN_REGISTRY_IMAGE}"
 
 echo "generating sqlite database"
 
