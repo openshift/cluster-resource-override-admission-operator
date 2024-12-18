@@ -31,14 +31,14 @@ func (d *deployment) Name() string {
 	return d.asset.Deployment().Name()
 }
 
-func (d *deployment) IsAvailable() (available bool, err error) {
+func (d *deployment) IsAvailable(checkGeneration bool) (available bool, err error) {
 	name := d.asset.Deployment().Name()
 	current, err := d.lister.Deployments(d.context.WebhookNamespace()).Get(name)
 	if err != nil {
 		return
 	}
 
-	available, err = GetDeploymentStatus(current)
+	available, err = GetDeploymentStatus(current, checkGeneration)
 	return
 }
 

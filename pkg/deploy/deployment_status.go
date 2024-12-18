@@ -33,9 +33,9 @@ func IsDeploymentFailedCreate(status *appsv1.DeploymentStatus) bool {
 	return cond.Reason == "FailedCreate" && cond.Status == corev1.ConditionTrue
 }
 
-func GetDeploymentStatus(deployment *appsv1.Deployment) (done bool, err error) {
-	if deployment.Generation > deployment.Status.ObservedGeneration {
-		err = fmt.Errorf("waiting for deployment spec update name=%s", deployment.Name)
+func GetDeploymentStatus(deployment *appsv1.Deployment, checkGeneration bool) (done bool, err error) {
+	if checkGeneration && deployment.Generation > deployment.Status.ObservedGeneration {
+		err = fmt.Errorf("waiting for deployment spec update name=%s; generation=%d observed generation=%d", deployment.Name, deployment.Generation, deployment.Status.ObservedGeneration)
 		return
 	}
 

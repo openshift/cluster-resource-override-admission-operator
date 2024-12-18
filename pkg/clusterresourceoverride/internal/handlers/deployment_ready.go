@@ -24,7 +24,7 @@ type deploymentReadyHandler struct {
 func (c *deploymentReadyHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
-	available, err := c.deploy.IsAvailable()
+	available, err := c.deploy.IsAvailable(false)
 	if available {
 		klog.V(2).Infof("key=%s resource=%s deployment is ready", original.Name, c.deploy.Name())
 

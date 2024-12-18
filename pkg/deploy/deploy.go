@@ -15,7 +15,7 @@ func (a Applier) Apply(object metav1.Object) {
 
 type Interface interface {
 	Name() string
-	IsAvailable() (available bool, err error)
+	IsAvailable(checkGeneration bool) (available bool, err error)
 	Get() (object runtime.Object, accessor metav1.Object, err error)
 	Ensure(parent, child Applier) (object runtime.Object, accessor metav1.Object, err error)
 }

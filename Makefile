@@ -119,10 +119,10 @@ deploy:
 
 # Alias for undeploy-local
 undeploy: undeploy-local
-undeploy-local: delete-test-pod
+undeploy-local: delete-test-pod delete-cro-cr
 	$(KUBECTL) delete -f $(KUBE_MANIFESTS_DIR) --ignore-not-found
 
-undeploy-olm: delete-cro-cr
+undeploy-olm: delete-test-pod delete-cro-cr
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OPERATOR_REGISTRY_MANIFESTS_DIR) --ignore-not-found
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OLM_MANIFESTS_DIR) --ignore-not-found
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(KUBE_MANIFESTS_DIR) --ignore-not-found
