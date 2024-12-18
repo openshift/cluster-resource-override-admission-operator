@@ -17,7 +17,7 @@ CONTAINER_ENGINE ?= podman
 # can support podman, docker, and buildah
 IMAGE_BUILDER ?= $(CONTAINER_ENGINE)
 # this is the version of the operator that should change with each release
-IMAGE_VERSION := 4.18
+IMAGE_VERSION := 4.19
 # this is the image tag of your custom dev image
 IMAGE_TAG := dev
 
@@ -119,10 +119,10 @@ deploy:
 
 # Alias for undeploy-local
 undeploy: undeploy-local
-undeploy-local: delete-test-pod
+undeploy-local: delete-test-pod delete-cro-cr
 	$(KUBECTL) delete -f $(KUBE_MANIFESTS_DIR) --ignore-not-found
 
-undeploy-olm: delete-cro-cr
+undeploy-olm: delete-test-pod delete-cro-cr
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OPERATOR_REGISTRY_MANIFESTS_DIR) --ignore-not-found
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OLM_MANIFESTS_DIR) --ignore-not-found
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(KUBE_MANIFESTS_DIR) --ignore-not-found

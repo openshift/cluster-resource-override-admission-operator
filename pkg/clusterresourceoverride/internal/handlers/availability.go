@@ -5,6 +5,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog/v2"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
@@ -29,7 +30,12 @@ func (a *availabilityHandler) Handle(context *ReconcileRequestContext, original 
 	current = original
 	builder := condition.NewBuilderWithStatus(&current.Status)
 
-	available, err := a.deploy.IsAvailable()
+	available, err := a.deploy.IsAvailable(true)
+
+	klog.V(2).Infof("key=%s resource=%s deployment availability=%t", original.Name, a.deploy.Name(), available)
+	if err != nil {
+		klog.V(2).Infof("key=%s resource=%s deployment availability error=%s", original.Name, a.deploy.Name(), err)
+	}
 
 	switch {
 	case available:

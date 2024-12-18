@@ -207,7 +207,7 @@ func GetClusterResourceOverride(t *testing.T, client versioned.Interface, name s
 }
 
 func Wait(t *testing.T, client versioned.Interface, name string, f ConditionFunc) (override *autoscalingv1.ClusterResourceOverride) {
-	err := wait.Poll(WaitInterval, WaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (done bool, err error) {
 		override, err = client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			return
@@ -234,8 +234,7 @@ func GetConfigMap(t *testing.T, client kubernetes.Interface, namespace, name str
 }
 
 func WaitForConfigMap(t *testing.T, client kubernetes.Interface, namespace, name string, original *corev1.ConfigMap) (cm *corev1.ConfigMap) {
-	ctx := context.TODO()
-	err := wait.PollUntilContextTimeout(ctx, WaitInterval, WaitTimeout, true, func(ctx context.Context) (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (done bool, err error) {
 		cm, err = client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
