@@ -60,6 +60,8 @@ func (c *configurationHandler) Handle(context *ReconcileRequestContext, original
 	}
 
 	equal := false
+	// we are hashing the entire override (podResourceOverride+deploymentOverrides) for object tracking/reconcile purposes
+	// but we only persist the podResourceOverride in the ConfigMap for the operand to consume
 	hash := original.Spec.Hash()
 	if hash == current.Status.Hash.Configuration {
 		equal = true
