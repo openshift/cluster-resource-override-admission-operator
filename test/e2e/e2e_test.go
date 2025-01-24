@@ -16,6 +16,11 @@ import (
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
 )
 
+const (
+	operatorNamespace = "clusterresourceoverride-operator"
+	configMapName     = "clusterresourceoverride-configuration"
+)
+
 func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -355,6 +360,7 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    10,
 		MemoryRequestToLimitPercent: 75,
+		ForceSelinuxRelabel:         false,
 	}
 	override := autoscalingv1.PodResourceOverride{
 		Spec: before,
@@ -372,12 +378,13 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 		LimitCPUToMemoryPercent:     50,
 		CPURequestToLimitPercent:    50,
 		MemoryRequestToLimitPercent: 50,
+		ForceSelinuxRelabel:         false,
 	}
 	override = autoscalingv1.PodResourceOverride{
 		Spec: after,
 	}
 
-	t.Logf("final configuration - %s", after.String())
+	t.Logf("second configuration - %s", after.String())
 
 	current, changed = helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override)
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
@@ -411,6 +418,25 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	defer disposer.Dispose()
 
 	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
+
+	// test changing ForceSelinuxRelabel changes the configuration hash and reconciles the configMap
+	after.ForceSelinuxRelabel = true
+	override = autoscalingv1.PodResourceOverride{
+		Spec: after,
+	}
+
+	t.Logf("final configuration: forceSelinuxRelabel - %s", after.String())
+
+	originalCm := helper.GetConfigMap(t, client.Kubernetes, operatorNamespace, configMapName)
+
+	current, changed = helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override)
+	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+	require.Equal(t, override.Spec.Hash(), current.Status.Hash.Configuration)
+
+	cm := helper.WaitForConfigMap(t, client.Kubernetes, operatorNamespace, configMapName, originalCm)
+	rawData := cm.Data["configuration.yaml"]
+	require.Contains(t, rawData, "forceSelinuxRelabel: true")
+	require.NotContains(t, rawData, "forceSelinuxRelabel: false")
 }
 
 func TestClusterResourceOverrideAdmissionWithCertRotation(t *testing.T) {
