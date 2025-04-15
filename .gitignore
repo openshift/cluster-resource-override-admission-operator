@@ -17,3 +17,9 @@ _output
 
 # GoLand
 .idea/
+
+# Ignore for asdf: https://github.com/asdf-vm/asdf
+.tool-versions
+
+# Ignore generated catalog
+/catalog/
