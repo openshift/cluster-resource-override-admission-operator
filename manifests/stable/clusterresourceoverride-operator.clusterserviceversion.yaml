@@ -220,6 +220,7 @@ spec:
             - get
             - list
             - watch
+            - delete
 
         # default for an aggregated apiserver
         - apiGroups:
