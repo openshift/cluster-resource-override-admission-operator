@@ -13,7 +13,7 @@ set -euo pipefail
 # 
 # Note that there should be no tag attached to the environment vars.
 #
-# This script is intended to be used alongside ./hack/build-bundle.sh 
+# This script is intended to be used alongside ./hack/generate-bundle.sh 
 # for building catalogs with multiple bundles for testing operator upgrades.
 # If needed in the future, it can be allowed to specify a custom catalog template.
 # 
