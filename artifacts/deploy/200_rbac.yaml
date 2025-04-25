@@ -179,6 +179,13 @@ rules:
     - patch
     - list
     - watch
+  
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    verbs:
+    - delete
 
   # to have the power to watch secondary resources
   - apiGroups:
