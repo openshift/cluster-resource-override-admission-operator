@@ -32,6 +32,7 @@ type apiServiceHandler struct {
 func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
+	ensure := false
 	name := a.asset.APIService().Name()
 	object, err := a.client.ApiregistrationV1().APIServices().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
@@ -39,10 +40,22 @@ func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autos
 			handleErr = condition.NewInstallReadinessError(autoscalingv1.AdmissionWebhookNotAvailable, err)
 			return
 		}
+		ensure = true
+	} else {
+		if object == nil {
+			klog.V(2).Infof("key=%s resource=%T/%s is nil", original.Name, object, name)
+			handleErr = condition.NewInstallReadinessError(autoscalingv1.InternalError, err)
+			return
+		}
+		if len(object.GetOwnerReferences()) != 1 || (object.GetOwnerReferences()[0].UID != current.GetUID()) {
+			klog.V(2).Infof("key=%s resource=%T/%s is not in sync, updating", original.Name, object, name)
+			ensure = true
+		}
+	}
 
-		// No APIService object
-		object := a.asset.APIService().New()
-
+	if ensure {
+		object = a.asset.APIService().New()
+		ctx.ControllerSetter().Set(object, current)
 		apiservice, err := a.ensurer.Ensure(object)
 		if err != nil {
 			handleErr = condition.NewInstallReadinessError(autoscalingv1.AdmissionWebhookNotAvailable, err)
@@ -50,7 +63,7 @@ func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autos
 		}
 
 		object = apiservice
-		klog.V(2).Infof("key=%s resource=%T/%s successfully created", original.Name, object, object.Name)
+		klog.V(2).Infof("key=%s resource=%T/%s successfully created/updated", original.Name, object, object.Name)
 	}
 
 	if ref := original.Status.Resources.APiServiceRef; ref != nil && ref.ResourceVersion == object.ResourceVersion {
