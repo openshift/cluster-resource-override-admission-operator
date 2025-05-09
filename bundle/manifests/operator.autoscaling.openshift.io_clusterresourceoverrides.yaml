@@ -1,0 +1,111 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: clusterresourceoverrides.operator.autoscaling.openshift.io
+spec:
+  conversion:
+    strategy: None
+  group: operator.autoscaling.openshift.io
+  names:
+    kind: ClusterResourceOverride
+    listKind: ClusterResourceOverrideList
+    plural: clusterresourceoverrides
+    shortNames:
+    - cro
+    singular: clusterresourceoverride
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Allows cluster administrator to control the level of overcommit
+          and manage container density on nodes.
+        properties:
+          spec:
+            description: Spec for a ClusterResourceOverride.
+            properties:
+              deploymentOverrides:
+                description: Deployment overrides for ClusterResourceOverrides.
+                properties:
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: (optional) NodeSelector to apply to ClusterResourceOverrides
+                      deployments.
+                    type: object
+                  replicas:
+                    description: (optional) Number of replicas for ClusterResourceOverrides
+                      deployments. This number must not exceed the number of nodes
+                      that can accommodate the replicas, considering tolerations,
+                      and node selectors.
+                    minimum: 0
+                    type: integer
+                  tolerations:
+                    description: (optional) Tolerations to apply to ClusterResourceOverrides
+                      deployments.
+                    items:
+                      properties:
+                        effect:
+                          type: string
+                        key:
+                          type: string
+                        operator:
+                          type: string
+                        tolerationSeconds:
+                          type: integer
+                        value:
+                          type: string
+                      type: object
+                    type: array
+                type: object
+              podResourceOverride:
+                description: Configuration for Pod resource overrides.
+                properties:
+                  spec:
+                    description: Spec for Pod resource overrides.
+                    properties:
+                      cpuRequestToLimitPercent:
+                        description: (optional, 1-100) If a container CPU limit has
+                          been specified or defaulted, the CPU request is overridden
+                          to this percentage of the limit.
+                        maximum: 100
+                        minimum: 1
+                        type: integer
+                      forceSelinuxRelabel:
+                        description: (optional, false) Enable the Selinux relabelling
+                          fix.
+                        type: boolean
+                      limitCPUToMemoryPercent:
+                        description: (optional, positive integer) If a container memory
+                          limit has been specified or defaulted, the CPU limit is
+                          overridden to a percentage of the memory limit, with a 100
+                          percentage scaling 1Gi of RAM to equal 1 CPU core. This
+                          is processed prior to overriding CPU request (if configured).
+                        minimum: 0
+                        type: integer
+                      memoryRequestToLimitPercent:
+                        description: (optional, 1-100) If a container memory limit
+                          has been specified or defaulted, the memory request is overridden
+                          to this percentage of the limit.
+                        maximum: 100
+                        minimum: 1
+                        type: integer
+                    type: object
+                type: object
+            type: object
+          status:
+            description: The status of the ClusterResourceOverride
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null
