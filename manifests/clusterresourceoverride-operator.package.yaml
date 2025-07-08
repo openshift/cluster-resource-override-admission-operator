@@ -1,4 +1,4 @@
 packageName: clusterresourceoverride
 channels:
   - name: stable
-    currentCSV: clusterresourceoverride-operator.v4.19.0
+    currentCSV: clusterresourceoverride-operator.v4.20.0
