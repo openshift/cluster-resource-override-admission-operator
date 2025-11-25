@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -288,7 +287,7 @@ func write(path string, object *corev1.ConfigMap) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, bytes, 0644)
+	return os.WriteFile(path, bytes, 0644)
 }
 
 func decode(reader io.Reader) (object *corev1.ConfigMap, err error) {
