@@ -17,7 +17,7 @@ CONTAINER_ENGINE ?= podman
 # can support podman, docker, and buildah
 IMAGE_BUILDER ?= $(CONTAINER_ENGINE)
 # this is the version of the operator that should change with each release
-IMAGE_VERSION := 4.21
+IMAGE_VERSION := 4.22
 # this is the image tag of your custom dev image
 IMAGE_TAG := dev
 

@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9-minimal:9.5
+FROM registry.access.redhat.com/ubi9-minimal:9.7
 
 ADD bin/cluster-resource-override-admission-operator /usr/bin
 

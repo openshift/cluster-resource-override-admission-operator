@@ -10,5 +10,5 @@ updates:
         replace: 'olm.skipRange: ">=4.3.0 <{FULL_VER}"'
   - file: "clusterresourceoverride-operator.package.yaml"
     update_list:
-      - search: "currentCSV: clusterresourceoverride-operator.v4.21.0"
+      - search: "currentCSV: clusterresourceoverride-operator.v4.22.0"
         replace: "currentCSV: clusterresourceoverride-operator.{FULL_VER}"
