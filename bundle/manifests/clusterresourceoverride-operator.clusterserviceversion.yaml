@@ -6,8 +6,8 @@ metadata:
     capabilities: Seamless Upgrades
     categories: OpenShift Optional
     certifiedLevel: Primed
-    containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.21
-    createdAt: "2025-11-10T22:41:34Z"
+    containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.22
+    createdAt: "2026-02-04T18:14:43Z"
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating
       Admission Webhook Server
     features.operators.openshift.io/disconnected: "true"
@@ -18,8 +18,8 @@ metadata:
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
     healthIndex: B
-    olm.skipRange: '>=4.3.0 <4.21.0'
-    operators.operatorframework.io/builder: operator-sdk-v1.41.1
+    olm.skipRange: '>=4.3.0 <4.22.0'
+    operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: unknown
     repository: https://github.com/openshift/cluster-resource-override-admission-operator
     support: Red Hat
@@ -27,7 +27,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
-  name: clusterresourceoverride-operator.v4.21.0
+  name: clusterresourceoverride-operator.v4.22.0
   namespace: clusterresourceoverride-operator
 spec:
   apiservicedefinitions: {}
@@ -354,10 +354,10 @@ spec:
   - efficiency
   labels:
     olm-owner-enterprise-app: clusterresourceoverride-operator
-    olm-status-descriptors: clusterresourceoverride-operator.v4.21.0
+    olm-status-descriptors: clusterresourceoverride-operator.v4.22.0
   maintainers:
   - email: support@redhat.com
     name: Red Hat
   provider:
     name: Red Hat
-  version: 4.21.0
+  version: 4.22.0

@@ -6,8 +6,8 @@ spec:
   - name: clusterresourceoverride-rhel8-operator
     from:
       kind: DockerImage
-      name: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.21
+      name: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.22
   - name: clusterresourceoverride-rhel8
     from:
       kind: DockerImage
-      name: quay.io/openshift/clusterresourceoverride-rhel8:4.21
+      name: quay.io/openshift/clusterresourceoverride-rhel8:4.22
