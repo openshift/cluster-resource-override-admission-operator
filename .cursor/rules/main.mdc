@@ -1,0 +1,28 @@
+---
+description: Main entry point for AI agent guidance in this repository.
+globs:
+alwaysApply: true
+---
+# ClusterResourceOverride Admission Operator
+
+Please refer to the `/AGENTS.md` file at the repository root for comprehensive guidance on:
+- Repository overview and architecture
+- Key directories and packages
+- Development commands and build system
+- Testing strategy
+- Key development patterns and conventions
+- Dependencies and module structure
+- Common gotchas and quirks
+
+## Keeping LLM configuration in sync
+
+When you make changes to this repository, check whether those changes invalidate any assumptions documented in the LLM configuration files. If they do, update the affected files as part of the same change. Examples of changes that require updates:
+- Renaming, adding, or removing Makefile targets -> update `AGENTS.md` Development Commands section
+- Changing directory structure or package layout -> update `AGENTS.md` Key Directories section
+- Modifying API group, version, kind, or CRD paths -> update `AGENTS.md` API Definition section
+- Adding or removing environment variables the operator depends on -> update `AGENTS.md` Environment Variables section
+- Changing the handler chain or reconciler architecture -> update `AGENTS.md` Architecture section
+- Updating Go version, dependency versions, or vendoring approach -> update `AGENTS.md` Dependencies section
+- Changing build, lint, or verify commands -> update both `AGENTS.md` and `.cursor/rules/code-formatting.mdc`
+
+Files to check: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/main.mdc`, `.cursor/rules/code-formatting.mdc`.
