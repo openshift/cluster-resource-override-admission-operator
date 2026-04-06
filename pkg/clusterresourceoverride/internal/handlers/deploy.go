@@ -3,14 +3,17 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/reference"
@@ -20,7 +23,7 @@ import (
 	dynamicclient "github.com/openshift/cluster-resource-override-admission-operator/pkg/dynamic"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/ensurer"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
-	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/tlsprofile"
 )
 
 func NewDeploymentHandler(o *Options) *deploymentHandler {
@@ -31,6 +34,7 @@ func NewDeploymentHandler(o *Options) *deploymentHandler {
 		asset:      o.Asset,
 		lister:     o.SecondaryLister,
 		deploy:     o.Deploy,
+		dynClient:  o.DynamicClient,
 	}
 }
 
@@ -40,8 +44,8 @@ type deploymentHandler struct {
 	dynamic    dynamicclient.Ensurer
 	lister     *secondarywatch.Lister
 	asset      *asset.Asset
-
-	deploy deploy.Interface
+	deploy     deploy.Interface
+	dynClient  dynamic.Interface
 }
 
 func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
@@ -56,6 +60,12 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 	} else if deleteErr == nil {
 		klog.V(2).Infof("Dangling DaemonSet %s in namespace %s deleted successfully", dsName, dsNamespace)
 		return
+	}
+
+	tlsArgs, err := tlsprofile.Fetch(context.TODO(), c.dynClient)
+	if err != nil {
+		klog.V(2).Infof("key=%s failed to fetch cluster TLS profile, proceeding with operand defaults: %s", original.Name, err)
+		tlsArgs = tlsprofile.Args{}
 	}
 
 	ensure := false
@@ -73,6 +83,9 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 	case accessor.GetAnnotations()[values.ConfigurationHashAnnotationKey] != current.Status.Hash.Configuration:
 		klog.V(2).Infof("key=%s resource=%T/%s configuration hash mismatch", original.Name, object, accessor.GetName())
 		ensure = true
+	case accessor.GetAnnotations()[values.TLSProfileHashAnnotationKey] != tlsArgs.Hash():
+		klog.V(2).Infof("key=%s resource=%T/%s TLS profile hash mismatch", original.Name, object, accessor.GetName())
+		ensure = true
 	case values.OperandImage != current.Status.Image:
 		klog.V(2).Infof("operand image mismatch: current: %s original: %s", current.Status.Image, values.OperandImage)
 		ensure = true
@@ -82,7 +95,7 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 	}
 
 	if ensure {
-		object, accessor, handleErr = c.Ensure(ctx, original)
+		object, accessor, handleErr = c.Ensure(ctx, original, tlsArgs)
 		if handleErr != nil {
 			return
 		}
@@ -107,7 +120,7 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 	return
 }
 
-func (c *deploymentHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) (current runtime.Object, accessor metav1.Object, err error) {
+func (c *deploymentHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) (current runtime.Object, accessor metav1.Object, err error) {
 	name := c.asset.NewMutatingWebhookConfiguration().Name()
 	if deleteErr := c.client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{}); deleteErr != nil && !k8serrors.IsNotFound(deleteErr) {
 		err = fmt.Errorf("failed to delete MutatingWebhookConfiguration - %s", deleteErr.Error())
@@ -118,13 +131,13 @@ func (c *deploymentHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalin
 		return
 	}
 
-	parent := c.ApplyToDeploymentObject(ctx, cro)
-	child := c.ApplyToToPodTemplate(ctx, cro)
+	parent := c.ApplyToDeploymentObject(ctx, cro, tlsArgs)
+	child := c.ApplyToToPodTemplate(ctx, cro, tlsArgs)
 	current, accessor, err = c.deploy.Ensure(parent, child)
 	return
 }
 
-func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) deploy.Applier {
+func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) deploy.Applier {
 	values := c.asset.Values()
 
 	return func(object metav1.Object) {
@@ -138,6 +151,7 @@ func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestCon
 		}
 
 		deployment.GetAnnotations()[values.ConfigurationHashAnnotationKey] = cro.Status.Hash.Configuration
+		deployment.GetAnnotations()[values.TLSProfileHashAnnotationKey] = tlsArgs.Hash()
 
 		// Override replica count, if specified in the CRD
 		if cro.Spec.DeploymentOverrides.Replicas != nil {
@@ -148,7 +162,7 @@ func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestCon
 	}
 }
 
-func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride) deploy.Applier {
+func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) deploy.Applier {
 	values := c.asset.Values()
 
 	return func(object metav1.Object) {
@@ -173,6 +187,23 @@ func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContex
 		// Replaces tolerations, if specified in the CR
 		if len(cro.Spec.DeploymentOverrides.Tolerations) > 0 {
 			podTemplateSpec.Spec.Tolerations = cro.Spec.DeploymentOverrides.Tolerations
+		}
+
+		if len(podTemplateSpec.Spec.Containers) > 0 {
+			var filtered []string
+			container := &podTemplateSpec.Spec.Containers[0]
+			for _, arg := range container.Args {
+				if !strings.HasPrefix(arg, "--tls-min-version=") && !strings.HasPrefix(arg, "--tls-cipher-suites=") {
+					filtered = append(filtered, arg)
+				}
+			}
+			if tlsArgs.MinVersion != "" {
+				filtered = append(filtered, "--tls-min-version="+tlsArgs.MinVersion)
+			}
+			if tlsArgs.CipherSuites != "" {
+				filtered = append(filtered, "--tls-cipher-suites="+tlsArgs.CipherSuites)
+			}
+			container.Args = filtered
 		}
 	}
 }

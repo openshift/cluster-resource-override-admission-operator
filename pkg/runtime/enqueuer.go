@@ -16,6 +16,10 @@ type Enqueuer interface {
 	Enqueue(owned interface{}) error
 }
 
+type DirectEnqueuer interface {
+	EnqueueByName(name string) error
+}
+
 func GetMetaObject(obj interface{}) (object metav1.Object, err error) {
 	object, metaErr := meta.Accessor(obj)
 	if metaErr == nil {

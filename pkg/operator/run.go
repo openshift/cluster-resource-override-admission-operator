@@ -59,9 +59,10 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 
 	// create lister(s) for secondary resources
 	lister, starter := secondarywatch.New(&secondarywatch.Options{
-		Client:       clients,
-		ResyncPeriod: DefaultResyncPeriodSecondaryResource,
-		Namespace:    config.Namespace,
+		Client:              clients,
+		ResyncPeriod:        DefaultResyncPeriodSecondaryResource,
+		Namespace:           config.Namespace,
+		PrimaryResourceName: DefaultCR,
 	})
 
 	// start the controllers

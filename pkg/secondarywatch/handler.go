@@ -1,6 +1,7 @@
 package secondarywatch
 
 import (
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
@@ -68,3 +69,40 @@ func (r *resourceEventHandler) OnDelete(obj interface{}) {
 		klog.V(3).Infof("[secondarywatch] OnDelete: failed to enqueue owner - %s", err.Error())
 	}
 }
+
+type directEnqueueHandler struct {
+	directEnqueuer runtime.DirectEnqueuer
+	primaryCRName  string
+}
+
+var _ cache.ResourceEventHandler = &directEnqueueHandler{}
+
+func newDirectEnqueueHandler(de runtime.DirectEnqueuer, primaryCRName string) cache.ResourceEventHandler {
+	return &directEnqueueHandler{directEnqueuer: de, primaryCRName: primaryCRName}
+}
+
+func (d *directEnqueueHandler) OnAdd(_ interface{}, _ bool) {
+	// No-op: we only care about updates
+}
+
+func (d *directEnqueueHandler) OnUpdate(oldObj, newObj interface{}) {
+	oldAcc, err := meta.Accessor(oldObj)
+	if err != nil {
+		klog.Errorf("[secondarywatch] directEnqueue OnUpdate: cannot access old object metadata: %v", err)
+		return
+	}
+	newAcc, err := meta.Accessor(newObj)
+	if err != nil {
+		klog.Errorf("[secondarywatch] directEnqueue OnUpdate: cannot access new object metadata: %v", err)
+		return
+	}
+	if oldAcc.GetResourceVersion() == newAcc.GetResourceVersion() {
+		return
+	}
+	klog.V(4).Infof("[secondarywatch] cluster APIServer config changed, enqueueing primary CR %q", d.primaryCRName)
+	if err := d.directEnqueuer.EnqueueByName(d.primaryCRName); err != nil {
+		klog.V(3).Infof("[secondarywatch] directEnqueue OnUpdate: failed to enqueue primary - %s", err.Error())
+	}
+}
+
+func (d *directEnqueueHandler) OnDelete(_ interface{}) {}

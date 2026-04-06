@@ -25,6 +25,7 @@ func New(context runtime.OperandContext) *Asset {
 		ConfigurationHashAnnotationKey: fmt.Sprintf("%s.%s/configuration.hash", context.WebhookName(), autoscalingv1.GroupName),
 		ServingCertHashAnnotationKey:   fmt.Sprintf("%s.%s/servingcert.hash", context.WebhookName(), autoscalingv1.GroupName),
 		OwnerAnnotationKey:             fmt.Sprintf("%s.%s/owner", context.WebhookName(), autoscalingv1.GroupName),
+		TLSProfileHashAnnotationKey:    fmt.Sprintf("%s.%s/tls-profile.hash", context.WebhookName(), autoscalingv1.GroupName),
 	}
 
 	return &Asset{
@@ -58,4 +59,5 @@ type Values struct {
 	ConfigurationHashAnnotationKey string
 	ServingCertHashAnnotationKey   string
 	OwnerAnnotationKey             string
+	TLSProfileHashAnnotationKey    string
 }

@@ -125,6 +125,16 @@ rules:
     verbs:
     - create
 
+  # to watch the cluster APIServer config for TLS profile changes
+  - apiGroups:
+    - config.openshift.io
+    resources:
+    - apiservers
+    verbs:
+    - get
+    - list
+    - watch
+
   # to grant power for the operand to create admission reviews
   - apiGroups:
     - admission.autoscaling.openshift.io

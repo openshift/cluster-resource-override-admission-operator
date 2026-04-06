@@ -6,6 +6,7 @@ import (
 	autoscalingv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
+	"k8s.io/client-go/dynamic"
 )
 
 func NewReconcileRequestContext(oc operatorruntime.OperandContext) *ReconcileRequestContext {
@@ -21,6 +22,7 @@ type Options struct {
 	SecondaryLister *secondarywatch.Lister
 	Asset           *asset.Asset
 	Deploy          deploy.Interface
+	DynamicClient   dynamic.Interface
 }
 
 type ReconcileRequestContext struct {
