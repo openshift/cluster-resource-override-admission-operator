@@ -2,8 +2,10 @@ package helper
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,7 +13,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/pointer"
@@ -20,6 +26,7 @@ import (
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/tlsprofile"
 )
 
 var (
@@ -372,4 +379,111 @@ func GetDeployment(t *testing.T, client kubernetes.Interface, namespace, name st
 	require.NoError(t, err)
 	require.NotNil(t, deployment)
 	return deployment
+}
+
+var apiServerGVR = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "apiservers",
+}
+
+// GetAPIServerTLSProfile returns the raw JSON bytes of the current
+// spec.tlsSecurityProfile field of the cluster APIServer object, or nil if
+// the field is not set.
+func GetAPIServerTLSProfile(t *testing.T, config *rest.Config) []byte {
+	t.Helper()
+
+	dynClient, err := dynamic.NewForConfig(config)
+	require.NoError(t, err)
+
+	apiServer, err := dynClient.Resource(apiServerGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	profile, found, err := unstructured.NestedFieldNoCopy(apiServer.Object, "spec", "tlsSecurityProfile")
+	require.NoError(t, err)
+	if !found || profile == nil {
+		return nil
+	}
+
+	raw, err := json.Marshal(profile)
+	require.NoError(t, err)
+	return raw
+}
+
+// SetAPIServerTLSProfile patches spec.tlsSecurityProfile on the cluster
+// APIServer object to the value encoded in profileJSON. Pass nil to clear the
+// field (restoring the cluster default).
+func SetAPIServerTLSProfile(t *testing.T, config *rest.Config, profileJSON []byte) {
+	t.Helper()
+
+	dynClient, err := dynamic.NewForConfig(config)
+	require.NoError(t, err)
+
+	var profileValue interface{}
+	if profileJSON != nil {
+		require.NoError(t, json.Unmarshal(profileJSON, &profileValue))
+	}
+
+	patch := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"tlsSecurityProfile": profileValue,
+		},
+	}
+	patchBytes, err := json.Marshal(patch)
+	require.NoError(t, err)
+
+	_, err = dynClient.Resource(apiServerGVR).Patch(
+		context.TODO(), "cluster",
+		types.MergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+	require.NoError(t, err)
+}
+
+// WaitForOperandTLSArgs polls the named deployment until the named container's
+// args contain exactly the TLS flags implied by want. It fails the test if the
+// deployment does not converge within WaitTimeout.
+func WaitForOperandTLSArgs(t *testing.T, client kubernetes.Interface, namespace, deploymentName, containerName string, want tlsprofile.Args) {
+	t.Helper()
+
+	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (bool, error) {
+		deployment, err := client.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+		if err != nil {
+			if k8serrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+
+		var args []string
+		for _, c := range deployment.Spec.Template.Spec.Containers {
+			if c.Name == containerName {
+				args = c.Args
+				break
+			}
+		}
+
+		return operandTLSArgsMatch(args, want), nil
+	})
+
+	require.NoErrorf(t, err,
+		"timed out waiting for operand deployment %s/%s container %q to have TLS args (minVersion=%q ciphers=%q)",
+		namespace, deploymentName, containerName, want.MinVersion, want.CipherSuites)
+}
+
+// operandTLSArgsMatch returns true when args contains exactly the TLS flags
+// implied by want: the right --tls-min-version and --tls-cipher-suites values
+// when non-empty, and neither flag when empty.
+func operandTLSArgsMatch(args []string, want tlsprofile.Args) bool {
+	var gotMinVersion, gotCipherSuites string
+	for _, arg := range args {
+		switch {
+		case strings.HasPrefix(arg, "--tls-min-version="):
+			gotMinVersion = strings.TrimPrefix(arg, "--tls-min-version=")
+		case strings.HasPrefix(arg, "--tls-cipher-suites="):
+			gotCipherSuites = strings.TrimPrefix(arg, "--tls-cipher-suites=")
+		}
+	}
+	return gotMinVersion == want.MinVersion && gotCipherSuites == want.CipherSuites
 }

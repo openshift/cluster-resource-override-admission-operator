@@ -46,6 +46,27 @@ func (e *enqueuer) Enqueue(obj interface{}) error {
 	return nil
 }
 
+// EnqueueByName enqueues the primary CRO CR directly by name, without requiring
+// the triggering object to carry an owner annotation.  Used by watchers on
+// external resources (e.g. the cluster APIServer config) that are not owned by
+// the CRO CR.
+func (e *enqueuer) EnqueueByName(name string) error {
+	cro, err := e.lister.Get(name)
+	if err != nil {
+		return fmt.Errorf("ignoring request to enqueue - %s", err.Error())
+	}
+
+	request := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: cro.GetNamespace(),
+			Name:      cro.GetName(),
+		},
+	}
+
+	e.queue.Add(request)
+	return nil
+}
+
 func getOwnerName(ownerAnnotationKey string, object metav1.Object) string {
 	// We check for annotations and owner references
 	// If both exist, owner references takes precedence.

@@ -213,6 +213,14 @@ spec:
           verbs:
           - create
         - apiGroups:
+          - config.openshift.io
+          resources:
+          - apiservers
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - admission.autoscaling.openshift.io
           resources:
           - clusterresourceoverrides

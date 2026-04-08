@@ -83,6 +83,7 @@ func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, 
 		SecondaryLister: options.Lister,
 		Asset:           operandAsset,
 		Deploy:          d,
+		DynamicClient:   options.Client.RawDynamic,
 	})
 
 	c = &clusterResourceOverrideController{
