@@ -30,7 +30,7 @@ A quick way to test your changes is to build the operator binary and run it dire
 make build
 
 # the operator owns a CRD, so register the CRD
-kubectl apply -f artifacts/olm/manifests/clusterresourceoverride/1.0.0/clusterresourceoverride.crd.yaml 
+kubectl apply -f manifests/stable/clusterresourceoverride.crd.yaml
 
 # make sure you have a cluster up and running
 # create a namespace where the operator binary will manage its resource(s)
@@ -218,10 +218,10 @@ There are three steps:
 * Make the above operator `catalog source` available to your OpenShift cluster.
 * Deploy the operator via `OLM`.
 
-Before you package the OLM manifests, make sure the `CSV` file `artifacts/olm/manifests/clusterresourceoverride/1.0.0/clusterresourceoverride.v1.csv.yaml`points to the right operator and operand image.
+Before you package the OLM manifests, make sure the `CSV` file `manifests/stable/clusterresourceoverride-operator.clusterserviceversion.yaml` points to the right operator and operand image.
 ```bash
-# build and push the image
-make operator-registry OLM_IMAGE_REGISTRY=docker.io/{your org}/clusterresourceoverride-registry IMAGE_TAG=dev
+# generate, build, and deploy the operator registry image
+make operator-registry-generate operator-registry-image operator-registry-deploy
 
 # make your catalog source available to the cluster
 kubectl apply -f artifacts/olm/catalog-source.yaml
