@@ -441,6 +441,110 @@ func SetAPIServerTLSProfile(t *testing.T, config *rest.Config, profileJSON []byt
 	require.NoError(t, err)
 }
 
+// GetAPIServerTLSAdherencePolicy returns the current spec.tlsAdherence value
+// of the cluster APIServer object, or "" if unset.
+func GetAPIServerTLSAdherencePolicy(t *testing.T, config *rest.Config) string {
+	t.Helper()
+
+	dynClient, err := dynamic.NewForConfig(config)
+	require.NoError(t, err)
+
+	apiServer, err := dynClient.Resource(apiServerGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	policy, _, _ := unstructured.NestedString(apiServer.Object, "spec", "tlsAdherence")
+	return policy
+}
+
+// SetAPIServerTLSAdherencePolicy patches spec.tlsAdherence on the cluster
+// APIServer object. Pass "" to clear the field (restoring the cluster default).
+func SetAPIServerTLSAdherencePolicy(t *testing.T, config *rest.Config, policy string) {
+	t.Helper()
+	require.NoError(t, TrySetAPIServerTLSAdherencePolicy(t, config, policy))
+}
+
+// TrySetAPIServerTLSAdherencePolicy patches spec.tlsAdherence on the cluster
+// APIServer object and returns any error, allowing callers to decide whether to
+// skip when the TLSAdherence feature gate is not available. Pass "" to clear the
+// field (restoring the cluster default).
+func TrySetAPIServerTLSAdherencePolicy(t *testing.T, config *rest.Config, policy string) error {
+	t.Helper()
+
+	dynClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	var policyValue interface{}
+	if policy != "" {
+		policyValue = policy
+	}
+
+	patch := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"tlsAdherence": policyValue,
+		},
+	}
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return err
+	}
+
+	_, err = dynClient.Resource(apiServerGVR).Patch(
+		context.TODO(), "cluster",
+		types.MergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+	return err
+}
+
+var featureGateGVR = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "featuregates",
+}
+
+// IsFeatureGateEnabled returns true if the named feature gate appears in the
+// enabled list of any version in the featuregates.config.openshift.io/cluster
+// status.
+func IsFeatureGateEnabled(t *testing.T, config *rest.Config, name string) bool {
+	t.Helper()
+
+	dynClient, err := dynamic.NewForConfig(config)
+	require.NoError(t, err)
+
+	fg, err := dynClient.Resource(featureGateGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	featureGates, found, err := unstructured.NestedSlice(fg.Object, "status", "featureGates")
+	require.NoError(t, err)
+	if !found {
+		return false
+	}
+
+	for _, versionEntry := range featureGates {
+		entry, ok := versionEntry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		enabled, found, err := unstructured.NestedSlice(entry, "enabled")
+		if err != nil || !found {
+			continue
+		}
+		for _, gate := range enabled {
+			gateMap, ok := gate.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if gateName, _, _ := unstructured.NestedString(gateMap, "name"); gateName == name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // WaitForOperandTLSArgs polls the named deployment until the named container's
 // args contain exactly the TLS flags implied by want. It fails the test if the
 // deployment does not converge within WaitTimeout.

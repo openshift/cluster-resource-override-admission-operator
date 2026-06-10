@@ -8,6 +8,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	tlspkg "github.com/openshift/controller-runtime-common/pkg/tls"
+	libgocrypto "github.com/openshift/library-go/pkg/crypto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -41,6 +42,10 @@ func Fetch(ctx context.Context, dynClient dynamic.Interface) (Args, error) {
 	apiServer := &configv1.APIServer{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, apiServer); err != nil {
 		return Args{}, fmt.Errorf("converting APIServer config: %w", err)
+	}
+
+	if !libgocrypto.ShouldHonorClusterTLSProfile(apiServer.Spec.TLSAdherence) {
+		return Args{}, nil
 	}
 
 	profile, err := tlspkg.GetTLSProfileSpec(apiServer.Spec.TLSSecurityProfile)
