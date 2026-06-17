@@ -7,7 +7,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
@@ -46,11 +45,11 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 							},
 						},
 						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							AllowPrivilegeEscalation: ptr.To(false),
 							Capabilities: &corev1.Capabilities{
 								Drop: []corev1.Capability{"ALL"},
 							},
-							RunAsNonRoot: pointer.BoolPtr(true),
+							RunAsNonRoot: ptr.To(true),
 							SeccompProfile: &corev1.SeccompProfile{
 								Type: "RuntimeDefault",
 							},
@@ -72,11 +71,11 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 							},
 						},
 						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							AllowPrivilegeEscalation: ptr.To(false),
 							Capabilities: &corev1.Capabilities{
 								Drop: []corev1.Capability{"ALL"},
 							},
-							RunAsNonRoot: pointer.BoolPtr(true),
+							RunAsNonRoot: ptr.To(true),
 							SeccompProfile: &corev1.SeccompProfile{
 								Type: "RuntimeDefault",
 							},
@@ -126,11 +125,11 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 							"echo The app is running! && sleep 1",
 						},
 						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							AllowPrivilegeEscalation: ptr.To(false),
 							Capabilities: &corev1.Capabilities{
 								Drop: []corev1.Capability{"ALL"},
 							},
-							RunAsNonRoot: pointer.BoolPtr(true),
+							RunAsNonRoot: ptr.To(true),
 							SeccompProfile: &corev1.SeccompProfile{
 								Type: "RuntimeDefault",
 							},
@@ -153,11 +152,11 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 								corev1.ResourceCPU:    resource.MustParse("500m")},
 						},
 						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							AllowPrivilegeEscalation: ptr.To(false),
 							Capabilities: &corev1.Capabilities{
 								Drop: []corev1.Capability{"ALL"},
 							},
-							RunAsNonRoot: pointer.BoolPtr(true),
+							RunAsNonRoot: ptr.To(true),
 							SeccompProfile: &corev1.SeccompProfile{
 								Type: "RuntimeDefault",
 							},
@@ -214,11 +213,11 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 							},
 						},
 						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							AllowPrivilegeEscalation: ptr.To(false),
 							Capabilities: &corev1.Capabilities{
 								Drop: []corev1.Capability{"ALL"},
 							},
-							RunAsNonRoot: pointer.BoolPtr(true),
+							RunAsNonRoot: ptr.To(true),
 							SeccompProfile: &corev1.SeccompProfile{
 								Type: "RuntimeDefault",
 							},
@@ -273,11 +272,11 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 								corev1.ResourceCPU:    resource.MustParse("1000m")},
 						},
 						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: pointer.BoolPtr(false),
+							AllowPrivilegeEscalation: ptr.To(false),
 							Capabilities: &corev1.Capabilities{
 								Drop: []corev1.Capability{"ALL"},
 							},
-							RunAsNonRoot: pointer.BoolPtr(true),
+							RunAsNonRoot: ptr.To(true),
 							SeccompProfile: &corev1.SeccompProfile{
 								Type: "RuntimeDefault",
 							},
@@ -537,4 +536,58 @@ func TestClusterResourceOverrideDeploymentOverrides(t *testing.T) {
 	require.Equal(t, *deployment.Spec.Replicas, *deploymentOverrides.Replicas)
 	require.Equal(t, deployment.Spec.Template.Spec.NodeSelector, deploymentOverrides.NodeSelector)
 	require.Equal(t, deployment.Spec.Template.Spec.Tolerations, deploymentOverrides.Tolerations)
+}
+
+func TestClusterResourceOverrideAdmissionWithCPURequestToRequestPercent(t *testing.T) {
+	client := helper.NewClient(t, options.config)
+
+	f := &helper.PreCondition{Client: client.Kubernetes}
+	f.MustHaveAdmissionRegistrationV1(t)
+
+	configuration := autoscalingv1.PodResourceOverrideSpec{
+		CPURequestToRequestPercent:  50,
+		MemoryRequestToLimitPercent: 50,
+	}
+	override := autoscalingv1.PodResourceOverride{
+		Spec: configuration,
+	}
+
+	t.Logf("setting webhook configuration - %s", configuration.String())
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
+	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
+
+	t.Log("waiting for webhook configuration to take effect")
+	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+
+	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
+	t.Log("webhook configuration has been set successfully")
+
+	ns, disposer := helper.NewNamespace(t, client.Kubernetes, "croe2e", true)
+	defer disposer.Dispose()
+
+	requirements := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("200m"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("512Mi"),
+		},
+	}
+
+	resourceWant := map[string]corev1.ResourceRequirements{
+		"app": {
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("512Mi"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("256Mi"),
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+			},
+		},
+	}
+
+	podGot, disposer := helper.NewPodWithResourceRequirement(t, client.Kubernetes, ns.GetName(), "app", requirements)
+	defer disposer.Dispose()
+
+	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
 }

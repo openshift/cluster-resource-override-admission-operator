@@ -58,6 +58,7 @@ spec:
       memoryRequestToLimitPercent: 50
       cpuRequestToLimitPercent: 25
       limitCPUToMemoryPercent: 200
+      cpuRequestToRequestPercent: 25
 ```
 
 This repo ships with an example CR, you can directly apply the YAML resource as well. 
