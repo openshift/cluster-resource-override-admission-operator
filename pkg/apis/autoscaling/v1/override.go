@@ -12,8 +12,8 @@ import (
 )
 
 func (in *PodResourceOverrideSpec) String() string {
-	return fmt.Sprintf("MemoryRequestToLimitPercent=%d, CPURequestToLimitPercent=%d, LimitCPUToMemoryPercent=%d, ForceSelinuxRelabel=%t",
-		in.MemoryRequestToLimitPercent, in.CPURequestToLimitPercent, in.LimitCPUToMemoryPercent, in.ForceSelinuxRelabel)
+	return fmt.Sprintf("ForceSelinuxRelabel=%t, MemoryRequestToLimitPercent=%d, CPURequestToLimitPercent=%d, LimitCPUToMemoryPercent=%d, CPURequestToRequestPercent=%d",
+		in.ForceSelinuxRelabel, in.MemoryRequestToLimitPercent, in.CPURequestToLimitPercent, in.LimitCPUToMemoryPercent, in.CPURequestToRequestPercent)
 }
 
 func (in *PodResourceOverrideSpec) Validate() error {
@@ -27,6 +27,10 @@ func (in *PodResourceOverrideSpec) Validate() error {
 
 	if in.LimitCPUToMemoryPercent < 0 {
 		return errors.New("invalid value for LimitCPUToMemoryPercent, must be a positive value")
+	}
+
+	if in.CPURequestToRequestPercent < 0 || in.CPURequestToRequestPercent > 100 {
+		return errors.New("invalid value for CPURequestToRequestPercent, must be [0...100]")
 	}
 
 	return nil

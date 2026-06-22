@@ -54,6 +54,11 @@ spec:
                         type: integer
                         description: (optional, positive integer) If a container memory limit has been specified or defaulted, the CPU limit is overridden to a percentage of the memory limit, with a 100 percentage scaling 1Gi of RAM to equal 1 CPU core. This is processed prior to overriding CPU request (if configured).
                         minimum: 0
+                      cpuRequestToRequestPercent:
+                        type: integer
+                        description: (optional, 1-100) If a container CPU request has been specified or defaulted, the CPU request is overridden to this percentage of the existing CPU request. This is processed after all configured overrides.
+                        minimum: 1
+                        maximum: 100
               deploymentOverrides:
                 type: object
                 description: Deployment overrides for ClusterResourceOverrides.
