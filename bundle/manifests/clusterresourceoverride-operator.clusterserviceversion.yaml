@@ -6,8 +6,8 @@ metadata:
     capabilities: Seamless Upgrades
     categories: OpenShift Optional
     certifiedLevel: Primed
-    containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:4.22
-    createdAt: "2026-06-16T22:26:09Z"
+    containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:5.0
+    createdAt: "2026-06-23T14:43:41Z"
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating
       Admission Webhook Server
     features.operators.openshift.io/disconnected: "true"
@@ -18,7 +18,7 @@ metadata:
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
     healthIndex: B
-    olm.skipRange: '>=4.3.0 <4.22.0'
+    olm.skipRange: '>=4.3.0 <5.0.0'
     operators.operatorframework.io/builder: operator-sdk-v1.42.2
     operators.operatorframework.io/project_layout: unknown
     repository: https://github.com/openshift/cluster-resource-override-admission-operator
@@ -27,7 +27,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
-  name: clusterresourceoverride-operator.v4.22.0
+  name: clusterresourceoverride-operator.v5.0.0
   namespace: clusterresourceoverride-operator
 spec:
   apiservicedefinitions: {}
@@ -261,10 +261,10 @@ spec:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: OPERAND_IMAGE
-                  value: quay.io/placeholder/operand:1.0
+                  value: CLUSTERRESOURCEOVERRIDE_OPERAND_IMAGE
                 - name: OPERAND_VERSION
                   value: 1.0.0
-                image: quay.io/placeholder/operator:1.0
+                image: CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE
                 imagePullPolicy: Always
                 livenessProbe:
                   httpGet:
@@ -362,10 +362,10 @@ spec:
   - efficiency
   labels:
     olm-owner-enterprise-app: clusterresourceoverride-operator
-    olm-status-descriptors: clusterresourceoverride-operator.v4.22.0
+    olm-status-descriptors: clusterresourceoverride-operator.v5.0.0
   maintainers:
   - email: support@redhat.com
     name: Red Hat
   provider:
     name: Red Hat
-  version: 4.22.0
+  version: 5.0.0

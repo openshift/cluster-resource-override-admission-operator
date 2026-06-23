@@ -73,11 +73,10 @@ spec:
                         minimum: 1
                         type: integer
                       cpuRequestToRequestPercent:
-                        description: (optional, 1-100) If a container CPU limit has
-                          not been specified or defaulted, the CPU request is overridden
+                        description: (optional, 1-100) If a container CPU request
+                          has been specified or defaulted, the CPU request is overridden
                           to this percentage of the existing CPU request. This is
-                          processed after all configured overrides, so any CPU limit
-                          set by limitCPUToMemoryPercent will disable cpuRequestToRequestPercent.
+                          processed after all configured overrides.
                         maximum: 100
                         minimum: 1
                         type: integer
