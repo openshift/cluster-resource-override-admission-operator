@@ -261,10 +261,10 @@ spec:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: OPERAND_IMAGE
-                  value: CLUSTERRESOURCEOVERRIDE_OPERAND_IMAGE
+                  value: quay.io/placeholder/operand:1.0
                 - name: OPERAND_VERSION
                   value: 1.0.0
-                image: CLUSTERRESOURCEOVERRIDE_OPERATOR_IMAGE
+                image: quay.io/placeholder/operator:1.0
                 imagePullPolicy: Always
                 livenessProbe:
                   httpGet:
