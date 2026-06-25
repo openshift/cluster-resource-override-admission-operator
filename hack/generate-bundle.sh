@@ -12,9 +12,9 @@ set -euo pipefail
 # 1. Builds the binary, builds the operator image (if enabled), and pushes it to your specified repo.
 # 2. Generates an OLM bundle with the specified operator and operand img.
 # 3. Builds and pushes a bundle image, if SKIP_BUILD is not true.
-# 
+#
 # e.g.,
-# 
+#
 #   OPERATOR_IMG=quay.io/macao/clusterresourceoverride-operator:VERSION \
 #   OPERAND_IMG=quay.io/macao/clusterresourceoverride:VERSION \
 #   BUNDLE_IMG=quay.io/macao/cro-bundle:VERSION \

@@ -45,6 +45,8 @@ rules:
     - clusterresourceoverrides
     - clusterresourceoverrides/status
     - clusterresourceoverrides/finalizers
+    - resourceoverrides
+    - resourceoverrides/status
     verbs:
     - update
     - get

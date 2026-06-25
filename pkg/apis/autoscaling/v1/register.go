@@ -7,17 +7,24 @@ import (
 )
 
 const (
-	// GroupName
+	// GroupName for ClusterResourceOverride
 	GroupName = "operator.autoscaling.openshift.io"
+	// GroupName for ResourceOverride
+	ResourceOverrideGroupName = "autoscaling.openshift.io"
 	// GroupVersion is the group version used in this package.
 	GroupVersion = "v1"
 )
 
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
+var ResourceOverrideSchemeGroupVersion = schema.GroupVersion{Group: ResourceOverrideGroupName, Version: GroupVersion}
+
 
 // Resource takes an unqualified resource and returns a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {
+	if resource == "resourceoverride" {
+		return ResourceOverrideSchemeGroupVersion.WithResource(resource).GroupResource()
+	}
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
@@ -37,6 +44,11 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ClusterResourceOverride{},
 		&ClusterResourceOverrideList{},
 	)
+	scheme.AddKnownTypes(ResourceOverrideSchemeGroupVersion,
+		&ResourceOverride{},
+		&ResourceOverrideList{},
+	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, ResourceOverrideSchemeGroupVersion)
 	return nil
 }

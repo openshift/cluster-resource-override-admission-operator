@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (in *PodResourceOverrideSpec) String() string {
@@ -76,6 +77,14 @@ func (in *ClusterResourceOverrideSpec) Hash() string {
 	return hex.EncodeToString(writer.Sum(nil))
 }
 
+func (in *ResourceOverrideSpec) Hash() string {
+	value := fmt.Sprintf("PodResourceOverride=%s, PodSelector=%s", in.PodResourceOverride.Hash(), labelSelectorToString(in.PodSelector))
+
+	writer := sha256.New()
+	writer.Write([]byte(value))
+	return hex.EncodeToString(writer.Sum(nil))
+}
+
 func mapToString(m map[string]string) string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -92,4 +101,11 @@ func mapToString(m map[string]string) string {
 
 func tolerationsToString(tolerations []corev1.Toleration) string {
 	return fmt.Sprintf("%v", tolerations)
+}
+
+func labelSelectorToString(sel *metav1.LabelSelector) string {
+	if sel == nil {
+		return ""
+	}
+	return metav1.FormatLabelSelector(sel)
 }

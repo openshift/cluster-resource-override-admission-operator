@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Red Hat, Inc.
+Copyright 2026 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	scheme "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -37,33 +37,34 @@ type ClusterResourceOverridesGetter interface {
 
 // ClusterResourceOverrideInterface has methods to work with ClusterResourceOverride resources.
 type ClusterResourceOverrideInterface interface {
-	Create(ctx context.Context, clusterResourceOverride *v1.ClusterResourceOverride, opts metav1.CreateOptions) (*v1.ClusterResourceOverride, error)
-	Update(ctx context.Context, clusterResourceOverride *v1.ClusterResourceOverride, opts metav1.UpdateOptions) (*v1.ClusterResourceOverride, error)
+	Create(ctx context.Context, clusterResourceOverride *autoscalingv1.ClusterResourceOverride, opts metav1.CreateOptions) (*autoscalingv1.ClusterResourceOverride, error)
+	Update(ctx context.Context, clusterResourceOverride *autoscalingv1.ClusterResourceOverride, opts metav1.UpdateOptions) (*autoscalingv1.ClusterResourceOverride, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, clusterResourceOverride *v1.ClusterResourceOverride, opts metav1.UpdateOptions) (*v1.ClusterResourceOverride, error)
+	UpdateStatus(ctx context.Context, clusterResourceOverride *autoscalingv1.ClusterResourceOverride, opts metav1.UpdateOptions) (*autoscalingv1.ClusterResourceOverride, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ClusterResourceOverride, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ClusterResourceOverrideList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*autoscalingv1.ClusterResourceOverride, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*autoscalingv1.ClusterResourceOverrideList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ClusterResourceOverride, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *autoscalingv1.ClusterResourceOverride, err error)
 	ClusterResourceOverrideExpansion
 }
 
 // clusterResourceOverrides implements ClusterResourceOverrideInterface
 type clusterResourceOverrides struct {
-	*gentype.ClientWithList[*v1.ClusterResourceOverride, *v1.ClusterResourceOverrideList]
+	*gentype.ClientWithList[*autoscalingv1.ClusterResourceOverride, *autoscalingv1.ClusterResourceOverrideList]
 }
 
 // newClusterResourceOverrides returns a ClusterResourceOverrides
 func newClusterResourceOverrides(c *AutoscalingV1Client) *clusterResourceOverrides {
 	return &clusterResourceOverrides{
-		gentype.NewClientWithList[*v1.ClusterResourceOverride, *v1.ClusterResourceOverrideList](
+		gentype.NewClientWithList[*autoscalingv1.ClusterResourceOverride, *autoscalingv1.ClusterResourceOverrideList](
 			"clusterresourceoverrides",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ClusterResourceOverride { return &v1.ClusterResourceOverride{} },
-			func() *v1.ClusterResourceOverrideList { return &v1.ClusterResourceOverrideList{} }),
+			func() *autoscalingv1.ClusterResourceOverride { return &autoscalingv1.ClusterResourceOverride{} },
+			func() *autoscalingv1.ClusterResourceOverrideList { return &autoscalingv1.ClusterResourceOverrideList{} },
+		),
 	}
 }

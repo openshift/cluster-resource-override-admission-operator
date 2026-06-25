@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Red Hat, Inc.
+Copyright 2026 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/listers"
-	"k8s.io/client-go/tools/cache"
+	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // ClusterResourceOverrideLister helps list ClusterResourceOverrides.
@@ -30,19 +30,19 @@ import (
 type ClusterResourceOverrideLister interface {
 	// List lists all ClusterResourceOverrides in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1.ClusterResourceOverride, err error)
+	List(selector labels.Selector) (ret []*autoscalingv1.ClusterResourceOverride, err error)
 	// Get retrieves the ClusterResourceOverride from the index for a given name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1.ClusterResourceOverride, error)
+	Get(name string) (*autoscalingv1.ClusterResourceOverride, error)
 	ClusterResourceOverrideListerExpansion
 }
 
 // clusterResourceOverrideLister implements the ClusterResourceOverrideLister interface.
 type clusterResourceOverrideLister struct {
-	listers.ResourceIndexer[*v1.ClusterResourceOverride]
+	listers.ResourceIndexer[*autoscalingv1.ClusterResourceOverride]
 }
 
 // NewClusterResourceOverrideLister returns a new ClusterResourceOverrideLister.
 func NewClusterResourceOverrideLister(indexer cache.Indexer) ClusterResourceOverrideLister {
-	return &clusterResourceOverrideLister{listers.New[*v1.ClusterResourceOverride](indexer, v1.Resource("clusterresourceoverride"))}
+	return &clusterResourceOverrideLister{listers.New[*autoscalingv1.ClusterResourceOverride](indexer, autoscalingv1.Resource("clusterresourceoverride"))}
 }
