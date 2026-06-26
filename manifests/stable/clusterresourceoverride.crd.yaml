@@ -23,7 +23,7 @@ spec:
     schema:
       openAPIV3Schema:
         type: object
-        description: Allows cluster administrator to control the level of overcommit and manage container density on nodes.
+        description: Allows cluster administrator to control the level of overcommit and manage pod density on nodes.
         properties:
           spec:
             type: object
@@ -39,7 +39,7 @@ spec:
                     properties:
                       forceSelinuxRelabel:
                         type: boolean
-                        description: (optional, false) Enable the Selinux relabelling fix.
+                        description: (optional, false) Enable the SElinux relabelling fix.
                       memoryRequestToLimitPercent:
                         type: integer
                         description: (optional, 1-100) If a container memory limit has been specified or defaulted, the memory request is overridden to this percentage of the limit.

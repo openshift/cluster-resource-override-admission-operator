@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Red Hat, Inc.
+Copyright 2026 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ limitations under the License.
 package externalversions
 
 import (
-	"fmt"
+	fmt "fmt"
 
 	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -55,6 +55,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=autoscaling.openshift.io, Version=v1
 	case v1.SchemeGroupVersion.WithResource("clusterresourceoverrides"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Autoscaling().V1().ClusterResourceOverrides().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("resourceoverrides"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Autoscaling().V1().ResourceOverrides().Informer()}, nil
 
 	}
 

@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Red Hat, Inc.
+Copyright 2026 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// ClusterResourceOverrides returns a ClusterResourceOverrideInformer.
 	ClusterResourceOverrides() ClusterResourceOverrideInformer
+	// ResourceOverrides returns a ResourceOverrideInformer.
+	ResourceOverrides() ResourceOverrideInformer
 }
 
 type version struct {
@@ -42,4 +44,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // ClusterResourceOverrides returns a ClusterResourceOverrideInformer.
 func (v *version) ClusterResourceOverrides() ClusterResourceOverrideInformer {
 	return &clusterResourceOverrideInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// ResourceOverrides returns a ResourceOverrideInformer.
+func (v *version) ResourceOverrides() ResourceOverrideInformer {
+	return &resourceOverrideInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

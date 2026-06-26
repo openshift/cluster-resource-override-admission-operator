@@ -1,0 +1,12 @@
+apiVersion: autoscaling.openshift.io/v1
+kind: ResourceOverride
+metadata:
+  name: example
+  namespace: my-namespace
+spec:
+  podResourceOverride:
+    memoryRequestToLimitPercent: 50
+    cpuRequestToRequestPercent: 50
+  podSelector:
+    matchLabels:
+      workload-type: batch

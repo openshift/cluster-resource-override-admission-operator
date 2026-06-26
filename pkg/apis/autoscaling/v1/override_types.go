@@ -7,13 +7,19 @@ import (
 
 const (
 	ClusterResourceOverrideKind = "ClusterResourceOverride"
+	ResourceOverrideKind        = "ResourceOverride"
 )
 
 type ClusterResourceOverrideConditionType string
+type ResourceOverrideConditionType string
 
 const (
 	InstallReadinessFailure ClusterResourceOverrideConditionType = "InstallReadinessFailure"
 	Available               ClusterResourceOverrideConditionType = "Available"
+)
+
+const (
+	ValidationFailure ResourceOverrideConditionType = "ValidationFailure"
 )
 
 const (
@@ -24,6 +30,7 @@ const (
 	InternalError                = "InternalError"
 	AdmissionWebhookNotAvailable = "AdmissionWebhookNotAvailable"
 	DeploymentNotReady           = "DeploymentNotReady"
+	ExemptNamespace              = "ExemptNamespace"
 )
 
 type ClusterResourceOverrideCondition struct {
@@ -101,6 +108,47 @@ type ClusterResourceOverrideResources struct {
 	MutatingWebhookConfigurationRef *corev1.ObjectReference `json:"mutatingWebhookConfigurationRef,omitempty"`
 }
 
+type ResourceOverrideCondition struct {
+	// Type is the type of ResourceOverride condition.
+	Type ResourceOverrideConditionType `json:"type" description:"type of ResourceOverride condition"`
+
+	// Status is the status of the condition, one of True, False, Unknown.
+	Status corev1.ConditionStatus `json:"status" description:"status of the condition, one of True, False, Unknown"`
+
+	// Reason is a one-word CamelCase reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty" description:"one-word CamelCase reason for the condition's last transition"`
+
+	// Message is a human-readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty" description:"human-readable message indicating details about last transition"`
+
+	// LastTransitionTime is the last time the condition transit from one status to another
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" description:"last time the condition transit from one status to another" hash:"ignore"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ResourceOverride struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ResourceOverrideSpec   `json:"spec,omitempty"`
+	Status ResourceOverrideStatus `json:"status,omitempty"`
+}
+
+type ResourceOverrideSpec struct {
+	PodResourceOverride PodResourceOverrideSpec `json:"podResourceOverride"`
+	// +optional
+	PodSelector *metav1.LabelSelector `json:"podSelector,omitempty"`
+}
+
+type ResourceOverrideStatus struct {
+	Conditions []ResourceOverrideCondition `json:"conditions,omitempty" hash:"set"`
+}
+
 // PodResourceOverride is the configuration for the admission controller which
 // overrides user-provided container request/limit values.
 type PodResourceOverride struct {
@@ -158,4 +206,12 @@ type ClusterResourceOverrideList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClusterResourceOverride `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ResourceOverrideList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ResourceOverride `json:"items"`
 }

@@ -33,37 +33,38 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// ClusterResourceOverrideInformer provides access to a shared informer and lister for
-// ClusterResourceOverrides.
-type ClusterResourceOverrideInformer interface {
+// ResourceOverrideInformer provides access to a shared informer and lister for
+// ResourceOverrides.
+type ResourceOverrideInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() autoscalingv1.ClusterResourceOverrideLister
+	Lister() autoscalingv1.ResourceOverrideLister
 }
 
-type clusterResourceOverrideInformer struct {
+type resourceOverrideInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
-// NewClusterResourceOverrideInformer constructs a new informer for ClusterResourceOverride type.
+// NewResourceOverrideInformer constructs a new informer for ResourceOverride type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewClusterResourceOverrideInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewClusterResourceOverrideInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+func NewResourceOverrideInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewResourceOverrideInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
 }
 
-// NewFilteredClusterResourceOverrideInformer constructs a new informer for ClusterResourceOverride type.
+// NewFilteredResourceOverrideInformer constructs a new informer for ResourceOverride type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredClusterResourceOverrideInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewClusterResourceOverrideInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+func NewFilteredResourceOverrideInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+	return NewResourceOverrideInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
 }
 
-// NewClusterResourceOverrideInformerWithOptions constructs a new informer for ClusterResourceOverride type with additional options.
+// NewResourceOverrideInformerWithOptions constructs a new informer for ResourceOverride type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewClusterResourceOverrideInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
-	gvr := schema.GroupVersionResource{Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterresourceoverrides"}
+func NewResourceOverrideInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	gvr := schema.GroupVersionResource{Group: "autoscaling.openshift.io", Version: "v1", Resource: "resourceoverrides"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
 	return cache.NewSharedIndexInformerWithOptions(
@@ -72,28 +73,28 @@ func NewClusterResourceOverrideInformerWithOptions(client versioned.Interface, o
 				if tweakListOptions != nil {
 					tweakListOptions(&opts)
 				}
-				return client.AutoscalingV1().ClusterResourceOverrides().List(context.Background(), opts)
+				return client.AutoscalingV1().ResourceOverrides(namespace).List(context.Background(), opts)
 			},
 			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&opts)
 				}
-				return client.AutoscalingV1().ClusterResourceOverrides().Watch(context.Background(), opts)
+				return client.AutoscalingV1().ResourceOverrides(namespace).Watch(context.Background(), opts)
 			},
 			ListWithContextFunc: func(ctx context.Context, opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&opts)
 				}
-				return client.AutoscalingV1().ClusterResourceOverrides().List(ctx, opts)
+				return client.AutoscalingV1().ResourceOverrides(namespace).List(ctx, opts)
 			},
 			WatchFuncWithContext: func(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&opts)
 				}
-				return client.AutoscalingV1().ClusterResourceOverrides().Watch(ctx, opts)
+				return client.AutoscalingV1().ResourceOverrides(namespace).Watch(ctx, opts)
 			},
 		}, client),
-		&apisautoscalingv1.ClusterResourceOverride{},
+		&apisautoscalingv1.ResourceOverride{},
 		cache.SharedIndexInformerOptions{
 			ResyncPeriod: options.ResyncPeriod,
 			Indexers:     options.Indexers,
@@ -102,14 +103,14 @@ func NewClusterResourceOverrideInformerWithOptions(client versioned.Interface, o
 	)
 }
 
-func (f *clusterResourceOverrideInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterResourceOverrideInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+func (f *resourceOverrideInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewResourceOverrideInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
-func (f *clusterResourceOverrideInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisautoscalingv1.ClusterResourceOverride{}, f.defaultInformer)
+func (f *resourceOverrideInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&apisautoscalingv1.ResourceOverride{}, f.defaultInformer)
 }
 
-func (f *clusterResourceOverrideInformer) Lister() autoscalingv1.ClusterResourceOverrideLister {
-	return autoscalingv1.NewClusterResourceOverrideLister(f.Informer().GetIndexer())
+func (f *resourceOverrideInformer) Lister() autoscalingv1.ResourceOverrideLister {
+	return autoscalingv1.NewResourceOverrideLister(f.Informer().GetIndexer())
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Red Hat, Inc.
+Copyright 2026 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ limitations under the License.
 package versioned
 
 import (
-	"fmt"
-	"net/http"
+	fmt "fmt"
+	http "net/http"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/autoscaling/v1"
 	discovery "k8s.io/client-go/discovery"

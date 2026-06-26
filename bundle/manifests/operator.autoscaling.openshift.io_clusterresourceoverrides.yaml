@@ -20,7 +20,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: Allows cluster administrator to control the level of overcommit
-          and manage container density on nodes.
+          and manage pod density on nodes.
         properties:
           spec:
             description: Spec for a ClusterResourceOverride.
@@ -81,7 +81,7 @@ spec:
                         minimum: 1
                         type: integer
                       forceSelinuxRelabel:
-                        description: (optional, false) Enable the Selinux relabelling
+                        description: (optional, false) Enable the SElinux relabelling
                           fix.
                         type: boolean
                       limitCPUToMemoryPercent:

@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Red Hat, Inc.
+Copyright 2026 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,7 +29,11 @@ type FakeAutoscalingV1 struct {
 }
 
 func (c *FakeAutoscalingV1) ClusterResourceOverrides() v1.ClusterResourceOverrideInterface {
-	return &FakeClusterResourceOverrides{c}
+	return newFakeClusterResourceOverrides(c)
+}
+
+func (c *FakeAutoscalingV1) ResourceOverrides(namespace string) v1.ResourceOverrideInterface {
+	return newFakeResourceOverrides(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate
