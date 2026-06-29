@@ -3,7 +3,7 @@ package handlers
 import (
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/deploy"
-	autoscalingv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
+	operatorv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/operator/v1"
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
 	"k8s.io/client-go/dynamic"
@@ -18,7 +18,7 @@ func NewReconcileRequestContext(oc operatorruntime.OperandContext) *ReconcileReq
 type Options struct {
 	OperandContext  operatorruntime.OperandContext
 	Client          *operatorruntime.Client
-	PrimaryLister   autoscalingv1listers.ClusterResourceOverrideLister
+	PrimaryLister   operatorv1listers.ClusterResourceOverrideLister
 	SecondaryLister *secondarywatch.Lister
 	Asset           *asset.Asset
 	Deploy          deploy.Interface

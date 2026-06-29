@@ -15,13 +15,13 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/handlers"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/reconciler"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/controller"
-	autoscalingv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
-	listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
+	listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/operator/v1"
+	operatorv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/operator/v1"
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
 )
@@ -48,11 +48,11 @@ func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, 
 	client := options.Client.Operator
 	watcher := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			return client.AutoscalingV1().ClusterResourceOverrides().List(context.TODO(), options)
+			return client.OperatorV1().ClusterResourceOverrides().List(context.TODO(), options)
 		},
 
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return client.AutoscalingV1().ClusterResourceOverrides().Watch(context.TODO(), options)
+			return client.OperatorV1().ClusterResourceOverrides().Watch(context.TODO(), options)
 		},
 	}
 
@@ -65,7 +65,7 @@ func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, 
 	// Note that when we finally process the item from the workqueue, we might
 	// see a newer version of the ClusterResourceOverride than the version which
 	// was responsible for triggering the update.
-	indexer, informer := cache.NewIndexerInformer(watcher, &autoscalingv1.ClusterResourceOverride{}, options.ResyncPeriod,
+	indexer, informer := cache.NewIndexerInformer(watcher, &operatorv1.ClusterResourceOverride{}, options.ResyncPeriod,
 		controller.NewEventHandler(queue), cache.Indexers{})
 
 	lister := listers.NewClusterResourceOverrideLister(indexer)
@@ -107,7 +107,7 @@ type clusterResourceOverrideController struct {
 	queue      workqueue.RateLimitingInterface
 	informer   cache.Controller
 	reconciler controllerreconciler.Reconciler
-	lister     autoscalingv1listers.ClusterResourceOverrideLister
+	lister     operatorv1listers.ClusterResourceOverrideLister
 }
 
 func (c *clusterResourceOverrideController) Name() string {

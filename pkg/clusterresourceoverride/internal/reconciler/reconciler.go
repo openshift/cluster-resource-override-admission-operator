@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/handlers"
 	dynamicclient "github.com/openshift/cluster-resource-override-admission-operator/pkg/dynamic"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
-	autoscalingv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
+	operatorv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/operator/v1"
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,9 +18,9 @@ import (
 
 var (
 	ClusterResourceOverrideGVK = schema.GroupVersionKind{
-		Group:   autoscalingv1.GroupName,
-		Version: autoscalingv1.GroupVersion,
-		Kind:    autoscalingv1.ClusterResourceOverrideKind,
+		Group:   operatorv1.GroupName,
+		Version: operatorv1.GroupVersion,
+		Kind:    operatorv1.ClusterResourceOverrideKind,
 	}
 )
 
@@ -51,7 +51,7 @@ func NewReconciler(options *handlers.Options) *reconciler {
 
 type reconciler struct {
 	client         versioned.Interface
-	lister         autoscalingv1listers.ClusterResourceOverrideLister
+	lister         operatorv1listers.ClusterResourceOverrideLister
 	handlers       HandlerChain
 	updater        *StatusUpdater
 	operandContext operatorruntime.OperandContext

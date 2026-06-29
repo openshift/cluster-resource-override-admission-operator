@@ -15,7 +15,7 @@ import (
 	"k8s.io/klog/v2"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/reference"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/condition"
@@ -48,7 +48,7 @@ type deploymentHandler struct {
 	dynClient  dynamic.Interface
 }
 
-func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
 	// Remove the DaemonSet if it exists; used prior to v4.17.0
@@ -72,7 +72,7 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 
 	object, accessor, getErr := c.deploy.Get()
 	if getErr != nil && !k8serrors.IsNotFound(getErr) {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.InternalError, getErr)
+		handleErr = condition.NewInstallReadinessError(operatorv1.InternalError, getErr)
 		return
 	}
 
@@ -110,7 +110,7 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 
 	newRef, err := reference.GetReference(object)
 	if err != nil {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
+		handleErr = condition.NewInstallReadinessError(operatorv1.CertNotAvailable, err)
 		return
 	}
 
@@ -120,7 +120,7 @@ func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *autos
 	return
 }
 
-func (c *deploymentHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) (current runtime.Object, accessor metav1.Object, err error) {
+func (c *deploymentHandler) Ensure(ctx *ReconcileRequestContext, cro *operatorv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) (current runtime.Object, accessor metav1.Object, err error) {
 	name := c.asset.NewMutatingWebhookConfiguration().Name()
 	if deleteErr := c.client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{}); deleteErr != nil && !k8serrors.IsNotFound(deleteErr) {
 		err = fmt.Errorf("failed to delete MutatingWebhookConfiguration - %s", deleteErr.Error())
@@ -137,7 +137,7 @@ func (c *deploymentHandler) Ensure(ctx *ReconcileRequestContext, cro *autoscalin
 	return
 }
 
-func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) deploy.Applier {
+func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestContext, cro *operatorv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) deploy.Applier {
 	values := c.asset.Values()
 
 	return func(object metav1.Object) {
@@ -162,7 +162,7 @@ func (c *deploymentHandler) ApplyToDeploymentObject(context *ReconcileRequestCon
 	}
 }
 
-func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContext, cro *autoscalingv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) deploy.Applier {
+func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContext, cro *operatorv1.ClusterResourceOverride, tlsArgs tlsprofile.Args) deploy.Applier {
 	values := c.asset.Values()
 
 	return func(object metav1.Object) {
@@ -208,7 +208,7 @@ func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContex
 	}
 }
 
-func (c *deploymentHandler) EnsureRBAC(context *ReconcileRequestContext, in *autoscalingv1.ClusterResourceOverride) error {
+func (c *deploymentHandler) EnsureRBAC(context *ReconcileRequestContext, in *operatorv1.ClusterResourceOverride) error {
 	list := c.asset.RBAC().New()
 	for _, item := range list {
 		context.ControllerSetter()(item.Object, in)

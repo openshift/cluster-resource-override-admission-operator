@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/reference"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/condition"
@@ -29,7 +29,7 @@ type apiServiceHandler struct {
 	asset   *asset.Asset
 }
 
-func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
 	ensure := false
@@ -37,14 +37,14 @@ func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autos
 	object, err := a.client.ApiregistrationV1().APIServices().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.AdmissionWebhookNotAvailable, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.AdmissionWebhookNotAvailable, err)
 			return
 		}
 		ensure = true
 	} else {
 		if object == nil {
 			klog.V(2).Infof("key=%s resource=%T/%s is nil", original.Name, object, name)
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.InternalError, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.InternalError, err)
 			return
 		}
 		if len(object.GetOwnerReferences()) != 1 || (object.GetOwnerReferences()[0].UID != current.GetUID()) {
@@ -58,7 +58,7 @@ func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autos
 		ctx.ControllerSetter().Set(object, current)
 		apiservice, err := a.ensurer.Ensure(object)
 		if err != nil {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.AdmissionWebhookNotAvailable, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.AdmissionWebhookNotAvailable, err)
 			return
 		}
 
@@ -73,7 +73,7 @@ func (a *apiServiceHandler) Handle(ctx *ReconcileRequestContext, original *autos
 
 	newRef, err := reference.GetReference(object)
 	if err != nil {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
+		handleErr = condition.NewInstallReadinessError(operatorv1.CertNotAvailable, err)
 		return
 	}
 

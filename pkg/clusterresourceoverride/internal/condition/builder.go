@@ -1,21 +1,21 @@
 package condition
 
 import (
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/clock"
 	"time"
 )
 
-func NewBuilderWithStatus(status *autoscalingv1.ClusterResourceOverrideStatus) *Builder {
+func NewBuilderWithStatus(status *operatorv1.ClusterResourceOverrideStatus) *Builder {
 	return &Builder{
 		clock:  clock.RealClock{},
 		status: status,
 	}
 }
 
-func Find(status *autoscalingv1.ClusterResourceOverrideStatus, conditionType autoscalingv1.ClusterResourceOverrideConditionType) *autoscalingv1.ClusterResourceOverrideCondition {
+func Find(status *operatorv1.ClusterResourceOverrideStatus, conditionType operatorv1.ClusterResourceOverrideConditionType) *operatorv1.ClusterResourceOverrideCondition {
 	for i := range status.Conditions {
 		c := &status.Conditions[i]
 		if c.Type == conditionType {
@@ -29,7 +29,7 @@ func Find(status *autoscalingv1.ClusterResourceOverrideStatus, conditionType aut
 // Equal returns true if the two given conditions are equal.
 // We deem two conditions equal if Type, Status, Reason and Message are a match
 // (despite LastTransitionTime being different).
-func Equal(this, that *autoscalingv1.ClusterResourceOverrideCondition) bool {
+func Equal(this, that *operatorv1.ClusterResourceOverrideCondition) bool {
 	if this.Type == that.Type &&
 		this.Status == that.Status &&
 		this.Reason == that.Reason &&
@@ -40,7 +40,7 @@ func Equal(this, that *autoscalingv1.ClusterResourceOverrideCondition) bool {
 	return false
 }
 
-func DeepCopyWithDefaultLastTransitionTime(status *autoscalingv1.ClusterResourceOverrideStatus) (copy *autoscalingv1.ClusterResourceOverrideStatus) {
+func DeepCopyWithDefaultLastTransitionTime(status *operatorv1.ClusterResourceOverrideStatus) (copy *operatorv1.ClusterResourceOverrideStatus) {
 	copy = status.DeepCopy()
 	for i := range copy.Conditions {
 		copy.Conditions[i].LastTransitionTime = metav1.NewTime(time.Time{})
@@ -51,7 +51,7 @@ func DeepCopyWithDefaultLastTransitionTime(status *autoscalingv1.ClusterResource
 
 type Builder struct {
 	clock  clock.Clock
-	status *autoscalingv1.ClusterResourceOverrideStatus
+	status *operatorv1.ClusterResourceOverrideStatus
 }
 
 func (b *Builder) WithError(err error) (builder *Builder) {
@@ -71,8 +71,8 @@ func (b *Builder) WithError(err error) (builder *Builder) {
 func (b *Builder) WithInstallReady() (builder *Builder) {
 	b.init()
 
-	desired := &autoscalingv1.ClusterResourceOverrideCondition{
-		Type:               autoscalingv1.InstallReadinessFailure,
+	desired := &operatorv1.ClusterResourceOverrideCondition{
+		Type:               operatorv1.InstallReadinessFailure,
 		Status:             corev1.ConditionFalse,
 		LastTransitionTime: metav1.NewTime(b.clock.Now()),
 	}
@@ -84,8 +84,8 @@ func (b *Builder) WithInstallReady() (builder *Builder) {
 func (b *Builder) WithAvailable(status corev1.ConditionStatus, message string) (builder *Builder) {
 	b.init()
 
-	desired := &autoscalingv1.ClusterResourceOverrideCondition{
-		Type:               autoscalingv1.Available,
+	desired := &operatorv1.ClusterResourceOverrideCondition{
+		Type:               operatorv1.Available,
 		Status:             status,
 		Message:            message,
 		LastTransitionTime: metav1.NewTime(b.clock.Now()),
@@ -95,7 +95,7 @@ func (b *Builder) WithAvailable(status corev1.ConditionStatus, message string) (
 	return b
 }
 
-func (b *Builder) WithCondition(desired *autoscalingv1.ClusterResourceOverrideCondition) {
+func (b *Builder) WithCondition(desired *operatorv1.ClusterResourceOverrideCondition) {
 	if desired == nil {
 		return
 	}
@@ -118,6 +118,6 @@ func (b *Builder) WithCondition(desired *autoscalingv1.ClusterResourceOverrideCo
 
 func (b *Builder) init() {
 	if b.status == nil {
-		b.status.Conditions = []autoscalingv1.ClusterResourceOverrideCondition{}
+		b.status.Conditions = []operatorv1.ClusterResourceOverrideCondition{}
 	}
 }

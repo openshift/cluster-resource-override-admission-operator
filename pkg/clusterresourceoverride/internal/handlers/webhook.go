@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/reference"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/condition"
@@ -26,7 +26,7 @@ type webhookConfigurationHandler struct {
 	asset   *asset.Asset
 }
 
-func (w *webhookConfigurationHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (w *webhookConfigurationHandler) Handle(context *ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 	ensure := false
 
@@ -34,7 +34,7 @@ func (w *webhookConfigurationHandler) Handle(context *ReconcileRequestContext, o
 	object, err := w.lister.AdmissionRegistrationV1MutatingWebhookConfigurationLister().Get(name)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.CertNotAvailable, err)
 			return
 		}
 
@@ -47,7 +47,7 @@ func (w *webhookConfigurationHandler) Handle(context *ReconcileRequestContext, o
 
 		webhook, err := w.dynamic.Ensure(desired)
 		if err != nil {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.CertNotAvailable, err)
 			return
 		}
 
@@ -62,7 +62,7 @@ func (w *webhookConfigurationHandler) Handle(context *ReconcileRequestContext, o
 
 	newRef, err := reference.GetReference(object)
 	if err != nil {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
+		handleErr = condition.NewInstallReadinessError(operatorv1.CertNotAvailable, err)
 		return
 	}
 

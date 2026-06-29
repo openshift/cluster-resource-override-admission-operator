@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/reference"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/condition"
@@ -39,7 +39,7 @@ type serviceHandler struct {
 	client  kubernetes.Interface
 }
 
-func (s *serviceHandler) Handle(ctx *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (s *serviceHandler) Handle(ctx *ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
 	name := s.asset.Service().Name()
@@ -52,12 +52,12 @@ func (s *serviceHandler) Handle(ctx *ReconcileRequestContext, original *autoscal
 		if !exists || (exists && value != name) { // this means the secret is still old
 			err = s.client.CoreV1().Secrets(ctx.WebhookNamespace()).Delete(context.TODO(), secretName, v1.DeleteOptions{})
 			if err != nil {
-				handleErr = condition.NewInstallReadinessError(autoscalingv1.InternalError, err)
+				handleErr = condition.NewInstallReadinessError(operatorv1.InternalError, err)
 				return
 			}
 		}
 	} else if !k8serrors.IsNotFound(err) {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
+		handleErr = condition.NewInstallReadinessError(operatorv1.CertNotAvailable, err)
 		return
 	}
 
@@ -67,13 +67,13 @@ func (s *serviceHandler) Handle(ctx *ReconcileRequestContext, original *autoscal
 	object, err := s.lister.CoreV1ServiceLister().Services(ctx.WebhookNamespace()).Get(name)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.CertNotAvailable, err)
 			return
 		}
 
 		service, err := s.dynamic.Ensure(desired)
 		if err != nil {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.CertNotAvailable, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.CertNotAvailable, err)
 			return
 		}
 
@@ -88,7 +88,7 @@ func (s *serviceHandler) Handle(ctx *ReconcileRequestContext, original *autoscal
 
 	newRef, err := reference.GetReference(object)
 	if err != nil {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.CannotSetReference, err)
+		handleErr = condition.NewInstallReadinessError(operatorv1.CannotSetReference, err)
 		return
 	}
 

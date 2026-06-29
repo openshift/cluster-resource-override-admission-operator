@@ -1,7 +1,7 @@
 package reconciler
 
 import (
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/condition"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/handlers"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -21,7 +21,7 @@ import (
 // that no further processing of the request should be done, In this case the caller will abort and no
 // other handler in the chain if any should be invoked.
 type Handler interface {
-	Handle(context *handlers.ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error)
+	Handle(context *handlers.ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error)
 }
 
 // HandlerChain defines a chain of Handler(s).
@@ -30,7 +30,7 @@ type HandlerChain []Handler
 
 var _ Handler = HandlerChain{}
 
-func (h HandlerChain) Handle(context *handlers.ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, err error) {
+func (h HandlerChain) Handle(context *handlers.ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, err error) {
 	for _, handler := range h {
 		// Invoke the handler.
 		current, result, err = handler.Handle(context, original)

@@ -4,7 +4,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 )
 
 func NewInstallReadinessError(reason string, err error) error {
@@ -25,19 +25,19 @@ func NewAvailableError(reason string, err error) error {
 	}
 }
 
-func FromError(err error, time metav1.Time) *autoscalingv1.ClusterResourceOverrideCondition {
+func FromError(err error, time metav1.Time) *operatorv1.ClusterResourceOverrideCondition {
 	switch e := err.(type) {
 	case *installReadinessError:
-		return &autoscalingv1.ClusterResourceOverrideCondition{
-			Type:               autoscalingv1.InstallReadinessFailure,
+		return &operatorv1.ClusterResourceOverrideCondition{
+			Type:               operatorv1.InstallReadinessFailure,
 			Reason:             e.Reason,
 			Message:            e.Error(),
 			Status:             corev1.ConditionTrue,
 			LastTransitionTime: time,
 		}
 	case *availableError:
-		return &autoscalingv1.ClusterResourceOverrideCondition{
-			Type:               autoscalingv1.Available,
+		return &operatorv1.ClusterResourceOverrideCondition{
+			Type:               operatorv1.Available,
 			Reason:             e.Reason,
 			Message:            e.Error(),
 			Status:             corev1.ConditionFalse,
