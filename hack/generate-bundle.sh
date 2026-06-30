@@ -38,7 +38,7 @@ fi
 rm -rf bundle
 
 # Aggregate files by --- separators
-awk 'FNR==1 && NR!=1 {print "---"} {print}' artifacts/deploy/* manifests/stable/* | operator-sdk generate bundle \
+awk 'FNR==1 && NR!=1 {print "---"} {print}' artifacts/deploy/* manifests/stable/* artifacts/example/*resourceoverride-cr.yaml | operator-sdk generate bundle \
     --package clusterresourceoverride-operator \
     --default-channel stable \
     --channels stable

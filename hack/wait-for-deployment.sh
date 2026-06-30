@@ -28,6 +28,12 @@ util::await_operator_deployment_create() {
     done
 
     echo "error - olm has not created the deployment yet ${namespace}/${name}" >&2
+    echo ${kubectl} get subscription -n "${namespace}" -o yaml
+    ${kubectl} get subscription -n "${namespace}" -o yaml
+    echo ${kubectl} get clusterserviceversion -n "${namespace}" -o yaml
+    ${kubectl} get clusterserviceversion -n "${namespace}" -o yaml
+    echo ${kubectl} get installplan -n "${namespace}" -o yaml
+    ${kubectl} get installplan -n "${namespace}" -o yaml
     return 1
 }
 
@@ -36,5 +42,6 @@ NAMESPACE=$2
 DEPLOYMENT_NAME=$3
 WAIT_TIME=$4
 
-exitcode=$(util::await_operator_deployment_create "${KUBECTL}" "${NAMESPACE}" "${DEPLOYMENT_NAME}" "${WAIT_TIME}")
+util::await_operator_deployment_create "${KUBECTL}" "${NAMESPACE}" "${DEPLOYMENT_NAME}" "${WAIT_TIME}"
+exitcode=$?
 exit $exitcode

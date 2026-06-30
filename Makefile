@@ -93,7 +93,11 @@ operator-registry-deploy-ci: operator-registry-generate operator-registry-deploy
 
 PKG=github.com/openshift/cluster-resource-override-admission-operator
 
-# similar to make generate in operator-sdk/kubebuilder projects
+.PHONY: bundle
+bundle:
+	SKIP_BUILD=true ./hack/generate-bundle.sh
+
+# generate typed clients, informers, and listers
 codegen:
 	./hack/update-codegen.sh
 
