@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
 )
 
@@ -305,12 +305,12 @@ func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 	f.MustHaveAdmissionRegistrationV1(t)
 
 	// ensure we have the webhook up and running with the desired config
-	configuration := autoscalingv1.PodResourceOverrideSpec{
+	configuration := operatorv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     200,
 		CPURequestToLimitPercent:    25,
 		MemoryRequestToLimitPercent: 50,
 	}
-	override := autoscalingv1.PodResourceOverride{
+	override := operatorv1.PodResourceOverride{
 		Spec: configuration,
 	}
 
@@ -353,16 +353,16 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	f := &helper.PreCondition{Client: client.Kubernetes}
 	f.MustHaveAdmissionRegistrationV1(t)
 
-	before := autoscalingv1.PodResourceOverrideSpec{
+	before := operatorv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    10,
 		MemoryRequestToLimitPercent: 75,
 		ForceSelinuxRelabel:         false,
 	}
-	override := autoscalingv1.PodResourceOverride{
+	override := operatorv1.PodResourceOverride{
 		Spec: before,
 	}
-	croSpec := autoscalingv1.ClusterResourceOverrideSpec{
+	croSpec := operatorv1.ClusterResourceOverrideSpec{
 		PodResourceOverride: override,
 	}
 
@@ -374,13 +374,13 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
 	require.Equal(t, croSpec.Hash(), current.Status.Hash.Configuration)
 
-	after := autoscalingv1.PodResourceOverrideSpec{
+	after := operatorv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     50,
 		CPURequestToLimitPercent:    50,
 		MemoryRequestToLimitPercent: 50,
 		ForceSelinuxRelabel:         false,
 	}
-	override = autoscalingv1.PodResourceOverride{
+	override = operatorv1.PodResourceOverride{
 		Spec: after,
 	}
 	croSpec.PodResourceOverride = override
@@ -422,7 +422,7 @@ func TestClusterResourceOverrideAdmissionWithConfigurationChange(t *testing.T) {
 
 	// test changing ForceSelinuxRelabel changes the configuration hash and reconciles the configMap
 	after.ForceSelinuxRelabel = true
-	override = autoscalingv1.PodResourceOverride{
+	override = operatorv1.PodResourceOverride{
 		Spec: after,
 	}
 	croSpec.PodResourceOverride = override
@@ -447,12 +447,12 @@ func TestClusterResourceOverrideAdmissionWithNoOptIn(t *testing.T) {
 	f := &helper.PreCondition{Client: client.Kubernetes}
 	f.MustHaveAdmissionRegistrationV1(t)
 
-	configuration := autoscalingv1.PodResourceOverrideSpec{
+	configuration := operatorv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     200,
 		CPURequestToLimitPercent:    50,
 		MemoryRequestToLimitPercent: 50,
 	}
-	override := autoscalingv1.PodResourceOverride{
+	override := operatorv1.PodResourceOverride{
 		Spec: configuration,
 	}
 
@@ -498,12 +498,12 @@ func TestClusterResourceOverrideDeploymentOverrides(t *testing.T) {
 	f.MustHaveAdmissionRegistrationV1(t)
 
 	// Set up the CRD object with the desired configurations
-	configuration := autoscalingv1.PodResourceOverrideSpec{
+	configuration := operatorv1.PodResourceOverrideSpec{
 		LimitCPUToMemoryPercent:     200,
 		CPURequestToLimitPercent:    25,
 		MemoryRequestToLimitPercent: 50,
 	}
-	deploymentOverrides := autoscalingv1.DeploymentOverrides{
+	deploymentOverrides := operatorv1.DeploymentOverrides{
 		Replicas: ptr.To[int32](1),
 		NodeSelector: map[string]string{
 			"node-role.kubernetes.io/worker": "",
@@ -517,7 +517,7 @@ func TestClusterResourceOverrideDeploymentOverrides(t *testing.T) {
 			},
 		},
 	}
-	override := autoscalingv1.PodResourceOverride{
+	override := operatorv1.PodResourceOverride{
 		Spec: configuration,
 	}
 
@@ -544,11 +544,11 @@ func TestClusterResourceOverrideAdmissionWithCPURequestToRequestPercent(t *testi
 	f := &helper.PreCondition{Client: client.Kubernetes}
 	f.MustHaveAdmissionRegistrationV1(t)
 
-	configuration := autoscalingv1.PodResourceOverrideSpec{
+	configuration := operatorv1.PodResourceOverrideSpec{
 		CPURequestToRequestPercent:  50,
 		MemoryRequestToLimitPercent: 50,
 	}
-	override := autoscalingv1.PodResourceOverride{
+	override := operatorv1.PodResourceOverride{
 		Spec: configuration,
 	}
 

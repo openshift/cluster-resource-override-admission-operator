@@ -24,7 +24,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/tlsprofile"
 )
@@ -40,7 +40,7 @@ func (d Disposer) Dispose() {
 	d()
 }
 
-type ConditionFunc func(override *autoscalingv1.ClusterResourceOverride) bool
+type ConditionFunc func(override *operatorv1.ClusterResourceOverride) bool
 
 type Client struct {
 	Operator   versioned.Interface
@@ -60,13 +60,13 @@ func NewClient(t *testing.T, config *rest.Config) *Client {
 	}
 }
 
-func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name string, override autoscalingv1.PodResourceOverride, deploymentOverrides *autoscalingv1.DeploymentOverrides) (current *autoscalingv1.ClusterResourceOverride, changed bool) {
+func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name string, override operatorv1.PodResourceOverride, deploymentOverrides *operatorv1.DeploymentOverrides) (current *operatorv1.ClusterResourceOverride, changed bool) {
 	changed = true
-	cluster := autoscalingv1.ClusterResourceOverride{
+	cluster := operatorv1.ClusterResourceOverride{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cluster",
 		},
-		Spec: autoscalingv1.ClusterResourceOverrideSpec{
+		Spec: operatorv1.ClusterResourceOverrideSpec{
 			PodResourceOverride: override,
 		},
 	}
@@ -76,7 +76,7 @@ func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 	}
 
 	var err error
-	current, err = client.AutoscalingV1().ClusterResourceOverrides().Create(context.TODO(), &cluster, metav1.CreateOptions{})
+	current, err = client.OperatorV1().ClusterResourceOverrides().Create(context.TODO(), &cluster, metav1.CreateOptions{})
 	if err == nil {
 		return
 	}
@@ -85,7 +85,7 @@ func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 		require.FailNowf(t, "unexpected error - %s", err.Error())
 	}
 
-	current, err = client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	current, err = client.OperatorV1().ClusterResourceOverrides().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	require.NoErrorf(t, err, "failed to get - %v", err)
 	require.NotNil(t, current)
 
@@ -96,14 +96,14 @@ func EnsureAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 	}
 
 	current.Spec.PodResourceOverride = *override.DeepCopy()
-	current, err = client.AutoscalingV1().ClusterResourceOverrides().Update(context.TODO(), current, metav1.UpdateOptions{})
+	current, err = client.OperatorV1().ClusterResourceOverrides().Update(context.TODO(), current, metav1.UpdateOptions{})
 	require.NoErrorf(t, err, "failed to update - %v", err)
 	require.NotNil(t, current)
 	return
 }
 
 func RemoveAdmissionWebhook(t *testing.T, client versioned.Interface, name string) {
-	_, err := client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
+	_, err := client.OperatorV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			require.FailNowf(t, "unexpected error - %s", err.Error())
@@ -112,7 +112,7 @@ func RemoveAdmissionWebhook(t *testing.T, client versioned.Interface, name strin
 		return
 	}
 
-	err = client.AutoscalingV1().ClusterResourceOverrides().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = client.OperatorV1().ClusterResourceOverrides().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	require.NoError(t, err)
 }
 
@@ -205,17 +205,17 @@ func NewPodWithResourceRequirement(t *testing.T, client kubernetes.Interface, na
 	return
 }
 
-func GetClusterResourceOverride(t *testing.T, client versioned.Interface, name string) *autoscalingv1.ClusterResourceOverride {
-	current, err := client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
+func GetClusterResourceOverride(t *testing.T, client versioned.Interface, name string) *operatorv1.ClusterResourceOverride {
+	current, err := client.OperatorV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, current)
 
 	return current
 }
 
-func Wait(t *testing.T, client versioned.Interface, name string, f ConditionFunc) (override *autoscalingv1.ClusterResourceOverride) {
+func Wait(t *testing.T, client versioned.Interface, name string, f ConditionFunc) (override *operatorv1.ClusterResourceOverride) {
 	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (done bool, err error) {
-		override, err = client.AutoscalingV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
+		override, err = client.OperatorV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			return
 		}
@@ -262,8 +262,8 @@ func WaitForConfigMap(t *testing.T, client kubernetes.Interface, namespace, name
 	return
 }
 
-func GetAvailableConditionFunc(original *autoscalingv1.ClusterResourceOverride, expectNewResourceVersion bool) ConditionFunc {
-	return func(current *autoscalingv1.ClusterResourceOverride) bool {
+func GetAvailableConditionFunc(original *operatorv1.ClusterResourceOverride, expectNewResourceVersion bool) ConditionFunc {
+	return func(current *operatorv1.ClusterResourceOverride) bool {
 		switch {
 		// we expect current to have a different resource version than original
 		case expectNewResourceVersion:
@@ -274,7 +274,7 @@ func GetAvailableConditionFunc(original *autoscalingv1.ClusterResourceOverride, 
 	}
 }
 
-func GetCondition(override *autoscalingv1.ClusterResourceOverride, condType autoscalingv1.ClusterResourceOverrideConditionType) *autoscalingv1.ClusterResourceOverrideCondition {
+func GetCondition(override *operatorv1.ClusterResourceOverride, condType operatorv1.ClusterResourceOverrideConditionType) *operatorv1.ClusterResourceOverrideCondition {
 	for i := range override.Status.Conditions {
 		condition := &override.Status.Conditions[i]
 		if condition.Type == condType {
@@ -285,9 +285,9 @@ func GetCondition(override *autoscalingv1.ClusterResourceOverride, condType auto
 	return nil
 }
 
-func IsAvailable(override *autoscalingv1.ClusterResourceOverride) bool {
-	available := GetCondition(override, autoscalingv1.Available)
-	readinessFailure := GetCondition(override, autoscalingv1.InstallReadinessFailure)
+func IsAvailable(override *operatorv1.ClusterResourceOverride) bool {
+	available := GetCondition(override, operatorv1.Available)
+	readinessFailure := GetCondition(override, operatorv1.InstallReadinessFailure)
 	if available == nil || readinessFailure == nil {
 		return false
 	}

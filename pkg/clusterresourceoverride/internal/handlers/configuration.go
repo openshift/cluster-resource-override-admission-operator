@@ -8,7 +8,7 @@ import (
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/reference"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/condition"
@@ -32,12 +32,12 @@ type configurationHandler struct {
 	lister  *secondarywatch.Lister
 }
 
-func (c *configurationHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (c *configurationHandler) Handle(context *ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
 	desired, err := c.NewConfiguration(context, original)
 	if err != nil {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.ConfigurationCheckFailed, err)
+		handleErr = condition.NewInstallReadinessError(operatorv1.ConfigurationCheckFailed, err)
 		return
 	}
 
@@ -45,13 +45,13 @@ func (c *configurationHandler) Handle(context *ReconcileRequestContext, original
 	object, err := c.lister.CoreV1ConfigMapLister().ConfigMaps(context.WebhookNamespace()).Get(name)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.InternalError, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.InternalError, err)
 			return
 		}
 
 		cm, err := c.ensurer.Ensure(desired)
 		if err != nil {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.InternalError, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.InternalError, err)
 			return
 		}
 
@@ -77,7 +77,7 @@ func (c *configurationHandler) Handle(context *ReconcileRequestContext, original
 
 		cm, err := c.ensurer.Ensure(desired)
 		if err != nil {
-			handleErr = condition.NewInstallReadinessError(autoscalingv1.ConfigurationCheckFailed, err)
+			handleErr = condition.NewInstallReadinessError(operatorv1.ConfigurationCheckFailed, err)
 			return
 		}
 
@@ -86,7 +86,7 @@ func (c *configurationHandler) Handle(context *ReconcileRequestContext, original
 
 	newRef, err := reference.GetReference(object)
 	if err != nil {
-		handleErr = condition.NewInstallReadinessError(autoscalingv1.CannotSetReference, err)
+		handleErr = condition.NewInstallReadinessError(operatorv1.CannotSetReference, err)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (c *configurationHandler) Handle(context *ReconcileRequestContext, original
 	return
 }
 
-func (c *configurationHandler) NewConfiguration(context *ReconcileRequestContext, override *autoscalingv1.ClusterResourceOverride) (configuration *corev1.ConfigMap, err error) {
+func (c *configurationHandler) NewConfiguration(context *ReconcileRequestContext, override *operatorv1.ClusterResourceOverride) (configuration *corev1.ConfigMap, err error) {
 	bytes, err := yaml.Marshal(override.Spec.PodResourceOverride)
 	if err != nil {
 		return

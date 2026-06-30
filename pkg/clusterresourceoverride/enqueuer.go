@@ -8,14 +8,14 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
-	autoscalingv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
+	operatorv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/operator/v1"
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 )
 
 type enqueuer struct {
 	queue              workqueue.RateLimitingInterface
-	lister             autoscalingv1listers.ClusterResourceOverrideLister
+	lister             operatorv1listers.ClusterResourceOverrideLister
 	ownerAnnotationKey string
 }
 
@@ -70,7 +70,7 @@ func (e *enqueuer) EnqueueByName(name string) error {
 func getOwnerName(ownerAnnotationKey string, object metav1.Object) string {
 	// We check for annotations and owner references
 	// If both exist, owner references takes precedence.
-	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil && ownerRef.Kind == autoscalingv1.ClusterResourceOverrideKind {
+	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil && ownerRef.Kind == operatorv1.ClusterResourceOverrideKind {
 		return ownerRef.Name
 	}
 

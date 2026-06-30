@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/tlsprofile"
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
 )
@@ -35,8 +35,8 @@ func verifyOperandTLSArgs(t *testing.T, kubeClient *helper.Client, config *rest.
 func ensureOperandDeployment(t *testing.T, client *helper.Client) {
 	t.Helper()
 
-	override := autoscalingv1.PodResourceOverride{
-		Spec: autoscalingv1.PodResourceOverrideSpec{
+	override := operatorv1.PodResourceOverride{
+		Spec: operatorv1.PodResourceOverrideSpec{
 			MemoryRequestToLimitPercent: 50,
 			CPURequestToLimitPercent:    25,
 			LimitCPUToMemoryPercent:     200,

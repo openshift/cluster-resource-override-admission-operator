@@ -3,7 +3,7 @@ package asset
 import (
 	"fmt"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 )
 
@@ -22,10 +22,10 @@ func New(context runtime.OperandContext) *Asset {
 		SelectorLabelKey:               "clusterresourceoverride",
 		SelectorLabelValue:             "true",
 		ConfigurationKey:               "configuration.yaml",
-		ConfigurationHashAnnotationKey: fmt.Sprintf("%s.%s/configuration.hash", context.WebhookName(), autoscalingv1.GroupName),
-		ServingCertHashAnnotationKey:   fmt.Sprintf("%s.%s/servingcert.hash", context.WebhookName(), autoscalingv1.GroupName),
-		OwnerAnnotationKey:             fmt.Sprintf("%s.%s/owner", context.WebhookName(), autoscalingv1.GroupName),
-		TLSProfileHashAnnotationKey:    fmt.Sprintf("%s.%s/tls-profile.hash", context.WebhookName(), autoscalingv1.GroupName),
+		ConfigurationHashAnnotationKey: fmt.Sprintf("%s.%s/configuration.hash", context.WebhookName(), operatorv1.GroupName),
+		ServingCertHashAnnotationKey:   fmt.Sprintf("%s.%s/servingcert.hash", context.WebhookName(), operatorv1.GroupName),
+		OwnerAnnotationKey:             fmt.Sprintf("%s.%s/owner", context.WebhookName(), operatorv1.GroupName),
+		TLSProfileHashAnnotationKey:    fmt.Sprintf("%s.%s/tls-profile.hash", context.WebhookName(), operatorv1.GroupName),
 	}
 
 	return &Asset{

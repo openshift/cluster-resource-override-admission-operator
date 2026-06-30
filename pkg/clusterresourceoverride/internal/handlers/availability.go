@@ -8,7 +8,7 @@ import (
 	"k8s.io/klog/v2"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/condition"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/deploy"
@@ -26,7 +26,7 @@ type availabilityHandler struct {
 	deploy deploy.Interface
 }
 
-func (a *availabilityHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (a *availabilityHandler) Handle(context *ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 	builder := condition.NewBuilderWithStatus(&current.Status)
 
@@ -41,11 +41,11 @@ func (a *availabilityHandler) Handle(context *ReconcileRequestContext, original 
 	case available:
 		builder.WithAvailable(corev1.ConditionTrue, "")
 	case err == nil:
-		builder.WithError(condition.NewAvailableError(autoscalingv1.AdmissionWebhookNotAvailable, fmt.Errorf("name=%s deployment not complete", a.deploy.Name())))
+		builder.WithError(condition.NewAvailableError(operatorv1.AdmissionWebhookNotAvailable, fmt.Errorf("name=%s deployment not complete", a.deploy.Name())))
 	case k8serrors.IsNotFound(err):
-		builder.WithError(condition.NewAvailableError(autoscalingv1.AdmissionWebhookNotAvailable, err))
+		builder.WithError(condition.NewAvailableError(operatorv1.AdmissionWebhookNotAvailable, err))
 	default:
-		builder.WithError(condition.NewAvailableError(autoscalingv1.InternalError, err))
+		builder.WithError(condition.NewAvailableError(operatorv1.InternalError, err))
 	}
 
 	return

@@ -6,7 +6,7 @@ import (
 	"k8s.io/klog/v2"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride/internal/condition"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/deploy"
 )
@@ -21,7 +21,7 @@ type deploymentReadyHandler struct {
 	deploy deploy.Interface
 }
 
-func (c *deploymentReadyHandler) Handle(context *ReconcileRequestContext, original *autoscalingv1.ClusterResourceOverride) (current *autoscalingv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
+func (c *deploymentReadyHandler) Handle(context *ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
 	current = original
 
 	available, err := c.deploy.IsAvailable(false)
@@ -40,6 +40,6 @@ func (c *deploymentReadyHandler) Handle(context *ReconcileRequestContext, origin
 		err = fmt.Errorf("name=%s waiting for deployment to complete", c.deploy.Name())
 	}
 
-	handleErr = condition.NewInstallReadinessError(autoscalingv1.DeploymentNotReady, err)
+	handleErr = condition.NewInstallReadinessError(operatorv1.DeploymentNotReady, err)
 	return
 }
