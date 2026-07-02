@@ -20,6 +20,8 @@ package fake
 
 import (
 	clientset "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
+	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/autoscaling/v1"
+	fakeautoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/autoscaling/v1/fake"
 	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/operator/v1"
 	fakeoperatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/typed/operator/v1/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,6 +96,11 @@ var (
 	_ clientset.Interface = &Clientset{}
 	_ testing.FakeClient  = &Clientset{}
 )
+
+// AutoscalingV1 retrieves the AutoscalingV1Client
+func (c *Clientset) AutoscalingV1() autoscalingv1.AutoscalingV1Interface {
+	return &fakeautoscalingv1.FakeAutoscalingV1{Fake: &c.Fake}
+}
 
 // OperatorV1 retrieves the OperatorV1Client
 func (c *Clientset) OperatorV1() operatorv1.OperatorV1Interface {

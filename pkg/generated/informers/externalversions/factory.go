@@ -25,6 +25,7 @@ import (
 	time "time"
 
 	versioned "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
+	autoscaling "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/informers/externalversions/autoscaling"
 	internalinterfaces "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/informers/externalversions/internalinterfaces"
 	operator "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/informers/externalversions/operator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -325,7 +326,12 @@ type SharedInformerFactory interface {
 	// client.
 	InformerFor(obj runtime.Object, newFunc internalinterfaces.NewInformerFunc) cache.SharedIndexInformer
 
+	Autoscaling() autoscaling.Interface
 	Operator() operator.Interface
+}
+
+func (f *sharedInformerFactory) Autoscaling() autoscaling.Interface {
+	return autoscaling.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Operator() operator.Interface {

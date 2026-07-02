@@ -21,7 +21,8 @@ package externalversions
 import (
 	fmt "fmt"
 
-	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
+	v1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -52,8 +53,12 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=operator.autoscaling.openshift.io, Version=v1
-	case v1.SchemeGroupVersion.WithResource("clusterresourceoverrides"):
+	// Group=autoscaling.openshift.io, Version=v1
+	case v1.SchemeGroupVersion.WithResource("resourceoverrides"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Autoscaling().V1().ResourceOverrides().Informer()}, nil
+
+		// Group=operator.autoscaling.openshift.io, Version=v1
+	case operatorv1.SchemeGroupVersion.WithResource("clusterresourceoverrides"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().ClusterResourceOverrides().Informer()}, nil
 
 	}

@@ -50,6 +50,16 @@ rules:
     - get
     - list
     - watch
+  - apiGroups:
+    - autoscaling.openshift.io
+    resources:
+    - resourceoverrides
+    - resourceoverrides/status
+    verbs:
+    - update
+    - get
+    - list
+    - watch
 
   # to have the power to read prioritylevelconfigurations
   - apiGroups:

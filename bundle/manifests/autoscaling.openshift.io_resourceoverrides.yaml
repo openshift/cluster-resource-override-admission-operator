@@ -1,0 +1,121 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: resourceoverrides.autoscaling.openshift.io
+spec:
+  conversion:
+    strategy: None
+  group: autoscaling.openshift.io
+  names:
+    kind: ResourceOverride
+    listKind: ResourceOverrideList
+    plural: resourceoverrides
+    shortNames:
+    - ro
+    singular: resourceoverride
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Allows namespace administrator to control the level of overcommit
+          and manage pod density on nodes.
+        properties:
+          spec:
+            description: Spec for a ResourceOverride.
+            properties:
+              podResourceOverride:
+                description: A Pod resource override.
+                properties:
+                  cpuRequestToLimitPercent:
+                    description: (optional, 1-100) If a container CPU limit has been
+                      specified or defaulted, the CPU request is overridden to this
+                      percentage of the limit.
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  cpuRequestToRequestPercent:
+                    description: (optional, 1-100) If a container CPU request has
+                      been specified or defaulted, the CPU request is overridden to
+                      this percentage of the existing CPU request. This is processed
+                      after all configured overrides.
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  forceSelinuxRelabel:
+                    description: (optional, false) Enable the SElinux relabelling
+                      fix.
+                    type: boolean
+                  limitCPUToMemoryPercent:
+                    description: (optional, positive integer) If a container memory
+                      limit has been specified or defaulted, the CPU limit is overridden
+                      to a percentage of the memory limit, with a 100 percentage scaling
+                      1Gi of RAM to equal 1 CPU core. This is processed prior to overriding
+                      CPU request (if configured).
+                    minimum: 0
+                    type: integer
+                  memoryRequestToLimitPercent:
+                    description: (optional, 1-100) If a container memory limit has
+                      been specified or defaulted, the memory request is overridden
+                      to this percentage of the limit.
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                type: object
+              podSelector:
+                description: (optional) A label selector to target specific pods.
+                  If empty or not specified, the override applies to all pods in the
+                  namespace.
+                properties:
+                  matchExpressions:
+                    description: A list of label selector requirements. A pod must
+                      satisfy all requirements to be selected.
+                    items:
+                      properties:
+                        key:
+                          description: The label key that the selector applies to.
+                          type: string
+                        operator:
+                          description: The operator relating the key to the values.
+                            Valid operators are In, NotIn, Exists, and DoesNotExist.
+                          enum:
+                          - In
+                          - NotIn
+                          - Exists
+                          - DoesNotExist
+                          type: string
+                        values:
+                          description: An array of string values. Required for In
+                            and NotIn operators.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: A map of key-value pairs. A pod must match all labels
+                      to be selected.
+                    type: object
+                type: object
+            type: object
+          status:
+            description: The status of the ResourceOverride
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null
