@@ -137,6 +137,15 @@ e2e:
 	export GO111MODULE=on
 	$(GO) test -v -count=1 -timeout=15m ./test/e2e/... --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
 
+e2e-upgrade-pre:
+	$(GO) test -v -count=1 -timeout=10m ./test/e2e/... -run TestUpgradePre --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
+
+e2e-upgrade-post:
+	$(GO) test -v -count=1 -timeout=10m ./test/e2e/... -run TestUpgradePost --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
+
+e2e-upgrade-test:
+	./hack/upgrade-test.sh
+
 # apply OLM resources to deploy the operator.
 olm-apply:
 	$(KUBECTL) apply -n $(OPERATOR_NAMESPACE) -f $(OLM_MANIFESTS_DIR)
