@@ -381,6 +381,25 @@ func GetDeployment(t *testing.T, client kubernetes.Interface, namespace, name st
 	return deployment
 }
 
+func WaitForDeploymentRollout(t *testing.T, client kubernetes.Interface, namespace, name string) {
+	t.Helper()
+	err := wait.PollUntilContextTimeout(context.TODO(), 2*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+		d, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if k8serrors.IsNotFound(err) {
+				return false, err
+			}
+			t.Logf("retrying: transient error getting deployment %s/%s: %v", namespace, name, err)
+			return false, nil
+		}
+		return d.Status.ObservedGeneration >= d.Generation &&
+			d.Status.UpdatedReplicas == *d.Spec.Replicas &&
+			d.Status.AvailableReplicas == *d.Spec.Replicas &&
+			d.Status.UnavailableReplicas == 0, nil
+	})
+	require.NoError(t, err, "timed out waiting for deployment %s/%s rollout", namespace, name)
+}
+
 var apiServerGVR = schema.GroupVersionResource{
 	Group:    "config.openshift.io",
 	Version:  "v1",
