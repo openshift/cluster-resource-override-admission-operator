@@ -44,6 +44,7 @@ metadata:
     categories: OpenShift Optional
     certifiedLevel: Primed
     olm.skipRange: ">=4.3.0 <5.0.0"
+    operatorframework.io/suggested-namespace: openshift-cluster-resource-override
     containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:5.0
     createdAt: 2019/11/15
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating Admission Webhook Server
@@ -62,7 +63,7 @@ metadata:
     operatorframework.io/arch.s390x: supported
     operatorframework.io/arch.ppc64le: supported
   name: clusterresourceoverride-operator.v5.0.0
-  namespace: clusterresourceoverride-operator
+  namespace: openshift-cluster-resource-override
 spec:
   customresourcedefinitions:
     owned:
@@ -430,6 +431,13 @@ spec:
                   runAsNonRoot: true
                   seccompProfile:
                     type: RuntimeDefault
+                tolerations:
+                  - effect: NoSchedule
+                    key: node-role.kubernetes.io/master
+                    operator: Exists
+                  - effect: NoSchedule
+                    key: node-role.kubernetes.io/control-plane
+                    operator: Exists
   installModes:
     - supported: true
       type: OwnNamespace

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	operatorNamespace = "clusterresourceoverride-operator"
+	operatorNamespace = "openshift-cluster-resource-override"
 	configMapName     = "clusterresourceoverride-configuration"
 )
 
