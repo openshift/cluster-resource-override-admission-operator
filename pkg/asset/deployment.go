@@ -12,16 +12,9 @@ var tolerationSeconds = int64(120)
 
 var DefaultReplicas int32 = 2
 
-var DefaultNodeSelector = map[string]string{
-	"node-role.kubernetes.io/master": "",
-}
+var DefaultNodeSelector = map[string]string{}
 
 var DefaultTolerations = []corev1.Toleration{
-	{
-		Key:      "node-role.kubernetes.io/master",
-		Operator: corev1.TolerationOpExists,
-		Effect:   corev1.TaintEffectNoSchedule,
-	},
 	{
 		Key:               "node.kubernetes.io/unreachable",
 		Operator:          corev1.TolerationOpExists,

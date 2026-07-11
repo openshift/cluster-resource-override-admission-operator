@@ -36,6 +36,7 @@ type Options struct {
 	Client         *operatorruntime.Client
 	RuntimeContext operatorruntime.OperandContext
 	Lister         *secondarywatch.Lister
+	IsStandalone   bool
 }
 
 func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, err error) {
@@ -84,6 +85,7 @@ func New(options *Options) (c controller.Interface, e operatorruntime.Enqueuer, 
 		Asset:           operandAsset,
 		Deploy:          d,
 		DynamicClient:   options.Client.RawDynamic,
+		IsStandalone:    options.IsStandalone,
 	})
 
 	c = &clusterResourceOverrideController{

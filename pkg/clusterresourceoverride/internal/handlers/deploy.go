@@ -28,24 +28,26 @@ import (
 
 func NewDeploymentHandler(o *Options) *deploymentHandler {
 	return &deploymentHandler{
-		client:     o.Client.Kubernetes,
-		dynamic:    o.Client.Dynamic,
-		deployment: ensurer.NewDeploymentEnsurer(o.Client.Dynamic),
-		asset:      o.Asset,
-		lister:     o.SecondaryLister,
-		deploy:     o.Deploy,
-		dynClient:  o.DynamicClient,
+		client:       o.Client.Kubernetes,
+		dynamic:      o.Client.Dynamic,
+		deployment:   ensurer.NewDeploymentEnsurer(o.Client.Dynamic),
+		asset:        o.Asset,
+		lister:       o.SecondaryLister,
+		deploy:       o.Deploy,
+		dynClient:    o.DynamicClient,
+		isStandalone: o.IsStandalone,
 	}
 }
 
 type deploymentHandler struct {
-	client     kubernetes.Interface
-	deployment *ensurer.DeploymentEnsurer
-	dynamic    dynamicclient.Ensurer
-	lister     *secondarywatch.Lister
-	asset      *asset.Asset
-	deploy     deploy.Interface
-	dynClient  dynamic.Interface
+	client       kubernetes.Interface
+	deployment   *ensurer.DeploymentEnsurer
+	dynamic      dynamicclient.Ensurer
+	lister       *secondarywatch.Lister
+	asset        *asset.Asset
+	deploy       deploy.Interface
+	dynClient    dynamic.Interface
+	isStandalone bool
 }
 
 func (c *deploymentHandler) Handle(ctx *ReconcileRequestContext, original *operatorv1.ClusterResourceOverride) (current *operatorv1.ClusterResourceOverride, result controllerreconciler.Result, handleErr error) {
@@ -182,11 +184,30 @@ func (c *deploymentHandler) ApplyToToPodTemplate(context *ReconcileRequestContex
 		// Replaces nodeSelector, if specified in the CR
 		if len(cro.Spec.DeploymentOverrides.NodeSelector) > 0 {
 			podTemplateSpec.Spec.NodeSelector = cro.Spec.DeploymentOverrides.NodeSelector
+		} else if c.isStandalone {
+			// On standalone clusters, schedule on control-plane nodes
+			podTemplateSpec.Spec.NodeSelector = map[string]string{
+				"node-role.kubernetes.io/control-plane": "",
+			}
 		}
 
 		// Replaces tolerations, if specified in the CR
 		if len(cro.Spec.DeploymentOverrides.Tolerations) > 0 {
 			podTemplateSpec.Spec.Tolerations = cro.Spec.DeploymentOverrides.Tolerations
+		} else if c.isStandalone {
+			// On standalone clusters, tolerate both master (legacy) and control-plane taints
+			podTemplateSpec.Spec.Tolerations = append(podTemplateSpec.Spec.Tolerations,
+				corev1.Toleration{
+					Key:      "node-role.kubernetes.io/master",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+				corev1.Toleration{
+					Key:      "node-role.kubernetes.io/control-plane",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			)
 		}
 
 		if len(podTemplateSpec.Spec.Containers) > 0 {

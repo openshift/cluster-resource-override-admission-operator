@@ -23,6 +23,7 @@ type Options struct {
 	Asset           *asset.Asset
 	Deploy          deploy.Interface
 	DynamicClient   dynamic.Interface
+	IsStandalone    bool
 }
 
 type ReconcileRequestContext struct {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/infrastructure"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/secondarywatch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
@@ -57,6 +58,8 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 	context := runtime.NewOperandContext(config.Name, config.Namespace, DefaultCR, config.OperandImage, config.OperandVersion)
 	apiregistrationv1.AddToScheme(scheme.Scheme)
 
+	standalone := infrastructure.IsStandalone(config.ShutdownContext, clients.RawDynamic)
+
 	// create lister(s) for secondary resources
 	lister, starter := secondarywatch.New(&secondarywatch.Options{
 		Client:              clients,
@@ -72,6 +75,7 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 		RuntimeContext: context,
 		Client:         clients,
 		Lister:         lister,
+		IsStandalone:   standalone,
 	})
 	if err != nil {
 		errorCh <- fmt.Errorf("failed to create controller - %s", err.Error())
