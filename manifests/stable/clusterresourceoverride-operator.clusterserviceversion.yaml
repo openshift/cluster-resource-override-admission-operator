@@ -292,6 +292,15 @@ spec:
             - list
             - watch
 
+        # to grant power to the operand to emit events for resourceoverride conflicts
+        - apiGroups:
+            - ''
+          resources:
+            - events
+          verbs:
+            - create
+            - patch
+
         # to have the power to manage configuration for admission webhook
         - apiGroups:
             - admissionregistration.k8s.io

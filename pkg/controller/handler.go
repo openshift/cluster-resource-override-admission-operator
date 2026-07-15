@@ -9,7 +9,7 @@ import (
 )
 
 // NewEventHandler returns a cache.ResourceEventHandler appropriate for
-// reconciliation of ClusterResourceOverride object(s).
+// reconciliation of ClusterResourceOverride and ResourceOverride object(s).
 func NewEventHandler(queue workqueue.RateLimitingInterface) EventHandler {
 	return EventHandler{
 		queue: queue,
