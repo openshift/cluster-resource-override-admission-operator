@@ -44,7 +44,7 @@ metadata:
     categories: OpenShift Optional
     certifiedLevel: Primed
     containerImage: quay.io/openshift/clusterresourceoverride-rhel8-operator:5.0
-    createdAt: "2026-07-01T20:49:09Z"
+    createdAt: "2026-07-30T21:02:32Z"
     description: An operator to manage the OpenShift ClusterResourceOverride Mutating
       Admission Webhook Server
     features.operators.openshift.io/disconnected: "true"
@@ -273,6 +273,13 @@ spec:
           - get
           - list
           - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
         - apiGroups:
           - authentication.k8s.io
           resources:
