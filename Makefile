@@ -131,11 +131,25 @@ undeploy-olm: delete-test-pod delete-cro-cr
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OLM_MANIFESTS_DIR) --ignore-not-found
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(KUBE_MANIFESTS_DIR) --ignore-not-found
 
+TLS_SCANNER_DIR := _output/tls-scanner
+TLS_SCANNER_BIN := $(TLS_SCANNER_DIR)/tls-scanner
+TLS_SCANNER_REPO := https://github.com/richardsonnick/tls-scanner.git
+TLS_SCANNER_BRANCH := docs/running-binary-directly
+
+# clone and build the tls-scanner tool
+$(TLS_SCANNER_BIN):
+	rm -rf $(TLS_SCANNER_DIR)
+	git clone --depth=1 --branch $(TLS_SCANNER_BRANCH) $(TLS_SCANNER_REPO) $(TLS_SCANNER_DIR)
+	cd $(TLS_SCANNER_DIR) && go build -o tls-scanner .
+
+.PHONY: tls-scanner
+tls-scanner: $(TLS_SCANNER_BIN)
+
 # run e2e test(s)
-e2e:
+e2e: $(TLS_SCANNER_BIN)
 	$(KUBECTL) -n $(OPERATOR_NAMESPACE) rollout status -w deployment/clusterresourceoverride-operator
 	export GO111MODULE=on
-	$(GO) test -v -count=1 -timeout=15m ./test/e2e/... --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
+	TLS_SCANNER_BIN=$(abspath $(TLS_SCANNER_BIN)) $(GO) test -v -count=1 -timeout=15m ./test/e2e/... --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
 
 e2e-upgrade-pre:
 	$(GO) test -v -count=1 -timeout=10m ./test/e2e/... -run TestUpgradePre --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
