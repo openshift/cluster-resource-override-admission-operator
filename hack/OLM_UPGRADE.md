@@ -178,7 +178,7 @@ If you want to run the upgrade steps manually without the tests:
 ### Install the old version
 
 ```bash
-NAMESPACE=clusterresourceoverride-operator
+NAMESPACE=openshift-cluster-resource-override
 oc create namespace $NAMESPACE
 
 operator-sdk run bundle \

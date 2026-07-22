@@ -158,7 +158,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: clusterresourceoverride-operator
-  namespace: clusterresourceoverride-operator
+  namespace: openshift-cluster-resource-override
 rules:
   # to have the power to ensure RBAC for the operand
   - apiGroups:
@@ -233,13 +233,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: clusterresourceoverride-operator
-    namespace: clusterresourceoverride-operator
+    namespace: openshift-cluster-resource-override
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: clusterresourceoverride-operator
-  namespace: clusterresourceoverride-operator
+  namespace: openshift-cluster-resource-override
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -247,4 +247,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: clusterresourceoverride-operator
-    namespace: clusterresourceoverride-operator
+    namespace: openshift-cluster-resource-override

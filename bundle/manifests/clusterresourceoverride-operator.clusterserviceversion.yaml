@@ -56,6 +56,7 @@ metadata:
     features.operators.openshift.io/token-auth-gcp: "false"
     healthIndex: B
     olm.skipRange: '>=4.3.0 <5.0.0'
+    operatorframework.io/suggested-namespace: openshift-cluster-resource-override
     operators.operatorframework.io/builder: operator-sdk-v1.42.2
     operators.operatorframework.io/project_layout: unknown
     repository: https://github.com/openshift/cluster-resource-override-admission-operator
@@ -65,7 +66,7 @@ metadata:
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
   name: clusterresourceoverride-operator.v5.0.0
-  namespace: clusterresourceoverride-operator
+  namespace: openshift-cluster-resource-override
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -361,6 +362,13 @@ spec:
                 seccompProfile:
                   type: RuntimeDefault
               serviceAccountName: clusterresourceoverride-operator
+              tolerations:
+              - effect: NoSchedule
+                key: node-role.kubernetes.io/master
+                operator: Exists
+              - effect: NoSchedule
+                key: node-role.kubernetes.io/control-plane
+                operator: Exists
       permissions:
       - rules:
         - apiGroups:

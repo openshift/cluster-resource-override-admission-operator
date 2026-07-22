@@ -21,7 +21,7 @@ IMAGE_VERSION := 5.0
 # this is the image tag of your custom dev image
 IMAGE_TAG := dev
 
-OPERATOR_NAMESPACE 			:= clusterresourceoverride-operator
+OPERATOR_NAMESPACE := openshift-cluster-resource-override
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
 
 export OLD_OPERATOR_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8-operator:$(IMAGE_VERSION)

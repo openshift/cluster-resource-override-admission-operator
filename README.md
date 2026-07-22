@@ -114,14 +114,14 @@ status:
       apiVersion: v1
       kind: ConfigMap
       name: clusterresourceoverride-configuration
-      namespace: clusterresourceoverride-operator
+      namespace: openshift-cluster-resource-override
       resourceVersion: "60858"
       uid: a50a2095-bab9-4834-8be3-633028c35f9e
     deploymentRef:
       apiVersion: apps/v1
       kind: Deployment
       name: clusterresourceoverride
-      namespace: clusterresourceoverride-operator
+      namespace: openshift-cluster-resource-override
       resourceVersion: "61013"
       uid: 4f21e033-e806-48e0-b053-0bbb9d6f688d
     mutatingWebhookConfigurationRef:
@@ -134,7 +134,7 @@ status:
       apiVersion: v1
       kind: Service
       name: clusterresourceoverride
-      namespace: clusterresourceoverride-operator
+      namespace: openshift-cluster-resource-override
       resourceVersion: "60876"
       uid: 1e343ec2-8c71-4cbc-a236-8c9c3a791db2
   version: 1.0.0
@@ -229,10 +229,10 @@ kubectl apply -f artifacts/olm/catalog-source.yaml
 
 # wait for the CatalogSource object to be in 'READY' state.
 # one way to make sure is to check the 'status' block of the CatalogSource object
-kubectl -n clusterresourceoverride-operator get catalogsource clusterresourceoverride-catalog -o yaml
+kubectl -n openshift-cluster-resource-override get catalogsource clusterresourceoverride-catalog -o yaml
 
 # or, you can query to check if your operator has been registered
-kubectl -n clusterresourceoverride-operator get packagemanifests | grep clusterresourceoverride 
+kubectl -n openshift-cluster-resource-override get packagemanifests | grep clusterresourceoverride
 
 # at this point, you can install the operator from OperatorHub UI.
 # if you want to do it from the command line, then execute the following:

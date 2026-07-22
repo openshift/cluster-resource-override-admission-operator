@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: clusterresourceoverride-operator
+  namespace: openshift-cluster-resource-override
   name: clusterresourceoverride-operator
   labels:
     clusterresourceoverride.operator: "true"
@@ -60,3 +60,10 @@ spec:
             capabilities:
               drop:
               - ALL
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists

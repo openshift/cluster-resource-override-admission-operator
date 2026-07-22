@@ -15,7 +15,7 @@ cat <<EOF | kubectl create -f -
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: clusterresourceoverride-operator
+  name: openshift-cluster-resource-override
 EOF
 ```
 
@@ -26,7 +26,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
   name: clusterresourceoverride-catalog
-  namespace: clusterresourceoverride-operator
+  namespace: openshift-cluster-resource-override
 spec:
   sourceType: grpc
   image: quay.io/redhat/clusterresourceoverride-registry@sha256:932d400cdc885266f07529f396a342d5b98d8a92dba3b76d9dddfdd3b1a294de
@@ -35,7 +35,7 @@ EOF
 
 Wait for the CatalogSource object to be in `READY` state. One way to make sure is to check the `status` block.
 ```bash
-$ watch kubectl -n clusterresourceoverride-operator get catalogsource clusterresourceoverride-catalog -o jsonpath='{.status.connectionState.lastObservedState}'
+$ watch kubectl -n openshift-cluster-resource-override get catalogsource clusterresourceoverride-catalog -o jsonpath='{.status.connectionState.lastObservedState}'
 READY
 ```
 
@@ -47,7 +47,7 @@ At this point, you can proceed to install the operator using
 #### Install via OperatorHub UI
 As highlighted in the snapshots, follow the steps below to install the `ClusterResourceOverride` operator.
 * Go to `OperatorHub`
-* Select `clusterresourceoverride-operator` Project.
+* Select `openshift-cluster-resource-override` Project (create, if necessary).
 * Select `Custom` for `Provider` type. (`ClusterResourceOverride` operator will appear in the result view)
 * Select the `ClusterResourceOverride` operator to install. Click `Install`, it will take you to the `Operator Subscription` page.
 * Click `Subscribe` with the default values populated by the UI. 
@@ -74,10 +74,10 @@ apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: clusterresourceoverride-operator
-  namespace: clusterresourceoverride-operator
+  namespace: openshift-cluster-resource-override
 spec:
   targetNamespaces:
-    - clusterresourceoverride-operator
+    - openshift-cluster-resource-override
 EOF
 ```
 
@@ -88,12 +88,12 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: clusterresourceoverride
-  namespace: clusterresourceoverride-operator
+  namespace: openshift-cluster-resource-override
 spec:
   channel: "4.4"
   name: clusterresourceoverride
   source: clusterresourceoverride-catalog
-  sourceNamespace: clusterresourceoverride-operator
+  sourceNamespace: openshift-cluster-resource-override
 EOF
 ```
 
