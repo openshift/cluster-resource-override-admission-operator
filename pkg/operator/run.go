@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/clusterresourceoverride"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/controller"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/resourceoverride"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 )
 
@@ -26,7 +27,7 @@ const (
 	// Default worker count is 1.
 	DefaultWorkerCount = 1
 
-	// Default ResyncPeriod for primary (ClusterResourceOverride objects)
+	// Default ResyncPeriod for primary resources (ClusterResourceOverride and ResourceOverride objects)
 	DefaultResyncPeriodPrimaryResource = 1 * time.Hour
 
 	// Default ResyncPeriod for all secondary resources that the operator manages.
@@ -69,7 +70,7 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 	})
 
 	// start the controllers
-	c, enqueuer, err := clusterresourceoverride.New(&clusterresourceoverride.Options{
+	cro, enqueuer, err := clusterresourceoverride.New(&clusterresourceoverride.Options{
 		ResyncPeriod:   DefaultResyncPeriodPrimaryResource,
 		Workers:        DefaultWorkerCount,
 		RuntimeContext: context,
@@ -78,20 +79,38 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 		IsStandalone:   standalone,
 	})
 	if err != nil {
-		errorCh <- fmt.Errorf("failed to create controller - %s", err.Error())
+		errorCh <- fmt.Errorf("failed to create clusterresourceoverride controller - %s", err.Error())
 		return
 	}
 
-	// setup watches for secondary resources
+	ro, err := resourceoverride.New(&resourceoverride.Options{
+		ResyncPeriod: DefaultResyncPeriodPrimaryResource,
+		Workers:      DefaultWorkerCount,
+		Client:       clients,
+	})
+	if err != nil {
+		errorCh <- fmt.Errorf("failed to create resourceoverride controller - %s", err.Error())
+		return
+	}
+
+	// setup watches for ClusterResourceOverride secondary resources
 	if err := starter.Start(enqueuer, config.ShutdownContext); err != nil {
 		errorCh <- fmt.Errorf("failed to start watch on secondary resources - %s", err.Error())
 		return
 	}
 
-	runner := controller.NewRunner()
-	runnerErrorCh := make(chan error, 0)
-	go runner.Run(config.ShutdownContext, c, runnerErrorCh)
-	if err := <-runnerErrorCh; err != nil {
+	croRunner := controller.NewRunner()
+	croRunnerErrorCh := make(chan error, 0)
+	go croRunner.Run(config.ShutdownContext, cro, croRunnerErrorCh)
+	if err := <-croRunnerErrorCh; err != nil {
+		errorCh <- err
+		return
+	}
+
+	roRunner := controller.NewRunner()
+	roRunnerErrorCh := make(chan error, 0)
+	go roRunner.Run(config.ShutdownContext, ro, roRunnerErrorCh)
+	if err := <-roRunnerErrorCh; err != nil {
 		errorCh <- err
 		return
 	}
@@ -104,9 +123,10 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 	go http.ListenAndServe(":8080", healthMux)
 
 	errorCh <- nil
-	klog.V(1).Infof("operator is waiting for controller(s) to be done")
+	klog.V(1).Infof("operator is waiting for controllers to be done")
 
-	<-runner.Done()
+	<-croRunner.Done()
+	<-roRunner.Done()
 }
 
 func (r *runner) Done() <-chan struct{} {

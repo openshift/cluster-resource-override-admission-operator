@@ -24,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/tlsprofile"
@@ -41,6 +42,7 @@ func (d Disposer) Dispose() {
 }
 
 type ConditionFunc func(override *operatorv1.ClusterResourceOverride) bool
+type ResourceOverrideConditionFunc func(override *autoscalingv1.ResourceOverride) bool
 
 type Client struct {
 	Operator   versioned.Interface
@@ -205,6 +207,51 @@ func NewPodWithResourceRequirement(t *testing.T, client kubernetes.Interface, na
 	return
 }
 
+func NewPodWithLabels(t *testing.T, client kubernetes.Interface, namespace string, containerName string, requirements corev1.ResourceRequirements, labels map[string]string) (pod *corev1.Pod, disposer Disposer) {
+	request := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "croe2e-",
+			Labels:       labels,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  containerName,
+					Image: "openshift/hello-openshift",
+					Ports: []corev1.ContainerPort{
+						{
+							Name:          "app",
+							ContainerPort: 8080,
+						},
+					},
+					Resources: requirements,
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: ptr.To(false),
+						Capabilities: &corev1.Capabilities{
+							Drop: []corev1.Capability{"ALL"},
+						},
+						RunAsNonRoot: ptr.To(true),
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: "RuntimeDefault",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	object, err := client.CoreV1().Pods(namespace).Create(context.TODO(), request, metav1.CreateOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, object)
+
+	pod = object
+	disposer = func() {
+		err := client.CoreV1().Pods(object.Namespace).Delete(context.TODO(), object.Name, metav1.DeleteOptions{})
+		require.NoError(t, err)
+	}
+	return
+}
+
 func GetClusterResourceOverride(t *testing.T, client versioned.Interface, name string) *operatorv1.ClusterResourceOverride {
 	current, err := client.OperatorV1().ClusterResourceOverrides().Get(context.TODO(), name, metav1.GetOptions{})
 	require.NoError(t, err)
@@ -297,6 +344,66 @@ func IsAvailable(override *operatorv1.ClusterResourceOverride) bool {
 	}
 
 	return true
+}
+
+func GetResourceOverrideCondition(override *autoscalingv1.ResourceOverride, condType autoscalingv1.ResourceOverrideConditionType) *autoscalingv1.ResourceOverrideCondition {
+	for i := range override.Status.Conditions {
+		condition := &override.Status.Conditions[i]
+		if condition.Type == condType {
+			return condition
+		}
+	}
+
+	return nil
+}
+
+func IsResourceOverrideValidationPassing(override *autoscalingv1.ResourceOverride) bool {
+	condition := GetResourceOverrideCondition(override, autoscalingv1.ValidationFailure)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == corev1.ConditionFalse
+}
+
+func WaitForResourceOverrideCondition(t *testing.T, client versioned.Interface, namespace, name string, f ResourceOverrideConditionFunc) (override *autoscalingv1.ResourceOverride) {
+	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (done bool, err error) {
+		override, err = client.AutoscalingV1().ResourceOverrides(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if err != nil {
+			return
+		}
+
+		if override == nil || !f(override) {
+			return
+		}
+
+		done = true
+		return
+	})
+
+	require.NoErrorf(t, err, "wait.Poll returned error - %v", err)
+	require.NotNil(t, override)
+	return
+}
+
+func CreateResourceOverride(t *testing.T, client versioned.Interface, namespace, name string, spec autoscalingv1.ResourceOverrideSpec) (ro *autoscalingv1.ResourceOverride, disposer Disposer) {
+	request := &autoscalingv1.ResourceOverride{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: spec,
+	}
+
+	object, err := client.AutoscalingV1().ResourceOverrides(namespace).Create(context.TODO(), request, metav1.CreateOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, object)
+
+	ro = object
+	disposer = func() {
+		err := client.AutoscalingV1().ResourceOverrides(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+		require.NoError(t, err)
+	}
+	return
 }
 
 func IsMatch(t *testing.T, requirementsWant, requirementsGot corev1.ResourceRequirements) {

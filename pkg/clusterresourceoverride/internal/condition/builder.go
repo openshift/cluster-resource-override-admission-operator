@@ -117,7 +117,7 @@ func (b *Builder) WithCondition(desired *operatorv1.ClusterResourceOverrideCondi
 }
 
 func (b *Builder) init() {
-	if b.status == nil {
+	if b.status.Conditions == nil {
 		b.status.Conditions = []operatorv1.ClusterResourceOverrideCondition{}
 	}
 }
