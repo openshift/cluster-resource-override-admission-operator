@@ -21,7 +21,8 @@ IMAGE_VERSION := 5.0
 # this is the image tag of your custom dev image
 IMAGE_TAG := dev
 
-OPERATOR_NAMESPACE := openshift-cluster-resource-override
+OPERATOR_NAMESPACE ?= openshift-cluster-resource-override
+export OPERATOR_NAMESPACE
 OPERATOR_DEPLOYMENT_NAME 	:= clusterresourceoverride-operator
 
 export OLD_OPERATOR_IMAGE_URL_IN_CSV 	= quay.io/openshift/clusterresourceoverride-rhel8-operator:$(IMAGE_VERSION)
@@ -117,6 +118,9 @@ deploy:
 	cp manifests/stable/resourceoverride.crd.yaml $(KUBE_MANIFESTS_DIR)/
 	cp manifests/stable/resourceoverride-rbac.yaml $(KUBE_MANIFESTS_DIR)/
 	cp $(ARTIFACTS)/registry-env.yaml $(KUBE_MANIFESTS_DIR)/
+
+	# Inject the operator namespace into all copied manifests
+	find $(KUBE_MANIFESTS_DIR) -name "*.yaml" | xargs sed -i "s/openshift-cluster-resource-override/$(OPERATOR_NAMESPACE)/g"
 
 	$(REGISTRY_SETUP_BINARY) --mode=$(DEPLOY_MODE) --olm=false --configmap=$(CONFIGMAP_ENV_FILE)
 	./hack/update-image-url.sh "$(CONFIGMAP_ENV_FILE)" "$(DEPLOYMENT_YAML)"
