@@ -512,6 +512,12 @@ var apiServerGVR = schema.GroupVersionResource{
 	Resource: "apiservers",
 }
 
+var clusterOperatorGVR = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "clusteroperators",
+}
+
 // GetAPIServerTLSProfile returns the raw JSON bytes of the current
 // spec.tlsSecurityProfile field of the cluster APIServer object, or nil if
 // the field is not set.
@@ -715,4 +721,67 @@ func operandTLSArgsMatch(args []string, want tlsprofile.Args) bool {
 		}
 	}
 	return gotMinVersion == want.MinVersion && gotCipherSuites == want.CipherSuites
+}
+
+// WaitForClusterOperatorsHealthy waits for all cluster operators to report
+// Available=True, Progressing=False, Degraded=False. Logs a warning instead
+// of failing the test if the timeout is reached, since this is a best-effort
+// stabilization step after disruptive operations like TLS profile changes.
+func WaitForClusterOperatorsHealthy(t *testing.T, config *rest.Config) {
+	t.Helper()
+
+	dynClient, err := dynamic.NewForConfig(config)
+	require.NoError(t, err)
+
+	t.Log("waiting for all cluster operators to be healthy (Available=True, Progressing=False, Degraded=False)")
+
+	err = wait.PollUntilContextTimeout(t.Context(), 30*time.Second, 30*time.Minute, true, func(ctx context.Context) (bool, error) {
+		coList, err := dynClient.Resource(clusterOperatorGVR).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			t.Logf("transient error listing cluster operators: %v", err)
+			return false, nil
+		}
+
+		for _, co := range coList.Items {
+			conditions, found, err := unstructured.NestedSlice(co.Object, "status", "conditions")
+			if err != nil || !found {
+				t.Logf("cluster operator %s: no conditions found", co.GetName())
+				return false, nil
+			}
+
+			available := "False"
+			progressing := "True"
+			degraded := "True"
+
+			for _, c := range conditions {
+				cond, ok := c.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				condType, _, _ := unstructured.NestedString(cond, "type")
+				condStatus, _, _ := unstructured.NestedString(cond, "status")
+
+				switch condType {
+				case "Available":
+					available = condStatus
+				case "Progressing":
+					progressing = condStatus
+				case "Degraded":
+					degraded = condStatus
+				}
+			}
+
+			if available != "True" || progressing != "False" || degraded != "False" {
+				t.Logf("cluster operator %s not healthy: Available=%v Progressing=%v Degraded=%v",
+					co.GetName(), available, progressing, degraded)
+				return false, nil
+			}
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		t.Logf("WARNING: timed out waiting for cluster operators to be healthy: %v", err)
+	}
 }
