@@ -289,6 +289,13 @@ spec:
                 seccompProfile:
                   type: RuntimeDefault
               serviceAccountName: clusterresourceoverride-operator
+              tolerations:
+              - effect: NoSchedule
+                key: node-role.kubernetes.io/master
+                operator: Exists
+              - effect: NoSchedule
+                key: node-role.kubernetes.io/control-plane
+                operator: Exists
       permissions:
       - rules:
         - apiGroups:
