@@ -114,6 +114,8 @@ deploy:
 	mkdir -p $(KUBE_MANIFESTS_DIR)
 	cp -r $(KUBE_MANIFESTS_SOURCE)/* $(KUBE_MANIFESTS_DIR)/
 	cp manifests/stable/clusterresourceoverride.crd.yaml $(KUBE_MANIFESTS_DIR)/
+	cp manifests/stable/resourceoverride.crd.yaml $(KUBE_MANIFESTS_DIR)/
+	cp manifests/stable/resourceoverride-rbac.yaml $(KUBE_MANIFESTS_DIR)/
 	cp $(ARTIFACTS)/registry-env.yaml $(KUBE_MANIFESTS_DIR)/
 
 	$(REGISTRY_SETUP_BINARY) --mode=$(DEPLOY_MODE) --olm=false --configmap=$(CONFIGMAP_ENV_FILE)
@@ -130,6 +132,10 @@ undeploy-olm: delete-test-pod delete-cro-cr
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OPERATOR_REGISTRY_MANIFESTS_DIR) --ignore-not-found
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(OLM_MANIFESTS_DIR) --ignore-not-found
 	$(KUBECTL) delete -n $(OPERATOR_NAMESPACE) -f $(KUBE_MANIFESTS_DIR) --ignore-not-found
+
+# run unit tests
+unit-test:
+	$(GO) test -v -count=1 $(GO_TEST_PACKAGES)
 
 # run e2e test(s)
 e2e:

@@ -121,6 +121,15 @@ rules:
     - list
     - watch
 
+  # to grant power to the operand to create and patch events
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+
   # to grant power to the operand to delegate authentication and authorization
   - apiGroups:
     - authentication.k8s.io

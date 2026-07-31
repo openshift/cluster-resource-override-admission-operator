@@ -151,7 +151,7 @@ func (s *rbac) New() []*RBACItem {
 							"watch",
 						},
 					},
-					// to give power to the operand to watch Namespace and LimitRange
+					// to give power to the operand to watch prioritylevelconfigurations and flowschemas
 					{
 						APIGroups: []string{
 							"flowcontrol.apiserver.k8s.io",
@@ -164,6 +164,33 @@ func (s *rbac) New() []*RBACItem {
 							"get",
 							"list",
 							"watch",
+						},
+					},
+					// to give power to the operand to watch resourceoverrides
+					{
+						APIGroups: []string{
+							"autoscaling.openshift.io",
+						},
+						Resources: []string{
+							"resourceoverrides",
+						},
+						Verbs: []string{
+							"get",
+							"list",
+							"watch",
+						},
+					},
+					// to give power to the operand to emit events for resourceoverride conflicts
+					{
+						APIGroups: []string{
+							"",
+						},
+						Resources: []string{
+							"events",
+						},
+						Verbs: []string{
+							"create",
+							"patch",
 						},
 					},
 				},

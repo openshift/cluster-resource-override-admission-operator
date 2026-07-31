@@ -97,6 +97,9 @@ func TestUpgradePost(t *testing.T) {
 	// Therefore, old operand pods get removed before new ones start and the webhook can be briefly unreachable, and flake the test.
 	helper.WaitForDeploymentRollout(t, client.Kubernetes, operatorNamespace, "clusterresourceoverride")
 
+	f := &helper.PreCondition{Client: client.Kubernetes}
+	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
+
 	t.Log("verifying webhook still mutates pods after upgrade")
 	verifyAdmissionWebhook(t, client.Kubernetes)
 }
