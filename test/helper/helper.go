@@ -460,6 +460,85 @@ func MustMatchMemoryAndCPU(t *testing.T, resourceWant map[string]corev1.Resource
 	}
 }
 
+func matchesMemoryAndCPU(resourceWant map[string]corev1.ResourceRequirements, specGot *corev1.PodSpec) bool {
+	for name, want := range resourceWant {
+		var got corev1.ResourceRequirements
+		found := false
+		for i, c := range specGot.Containers {
+			if c.Name == name {
+				got = specGot.Containers[i].Resources
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+		for _, res := range []corev1.ResourceName{corev1.ResourceMemory, corev1.ResourceCPU} {
+			if wantQ, ok := want.Requests[res]; ok {
+				if gotQ, ok := got.Requests[res]; !ok || !wantQ.Equal(gotQ) {
+					return false
+				}
+			}
+			if wantQ, ok := want.Limits[res]; ok {
+				if gotQ, ok := got.Limits[res]; !ok || !wantQ.Equal(gotQ) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// EventuallyMustMatchPodMutation polls by creating throwaway pods until one's
+// resources match the expected values, then returns that pod and a disposer.
+// Use this instead of a sleep when the webhook config may not have propagated yet.
+func EventuallyMustMatchPodMutation(t *testing.T, client kubernetes.Interface, namespace, containerName string, requirements corev1.ResourceRequirements, want map[string]corev1.ResourceRequirements) (pod *corev1.Pod, disposer Disposer) {
+	t.Helper()
+
+	err := wait.PollUntilContextTimeout(t.Context(), 10*time.Second, WaitTimeout, true, func(ctx context.Context) (bool, error) {
+		p, err := client.CoreV1().Pods(namespace).Create(ctx, &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{GenerateName: "croe2e-"},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{
+					Name:      containerName,
+					Image:     "openshift/hello-openshift",
+					Resources: requirements,
+					Ports:     []corev1.ContainerPort{{Name: "app", ContainerPort: 8080}},
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: ptr.To(false),
+						Capabilities:             &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
+						RunAsNonRoot:             ptr.To(true),
+						SeccompProfile:           &corev1.SeccompProfile{Type: "RuntimeDefault"},
+					},
+				}},
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			t.Logf("retrying: failed to create probe pod: %v", err)
+			return false, nil
+		}
+
+		if matchesMemoryAndCPU(want, &p.Spec) {
+			pod = p
+			return true, nil
+		}
+
+		t.Logf("pod mutation not yet matching expected values, retrying")
+		if err := client.CoreV1().Pods(namespace).Delete(t.Context(), p.Name, metav1.DeleteOptions{}); err != nil {
+			t.Logf("warning: failed to delete probe pod %s: %v", p.Name, err)
+		}
+		return false, nil
+	})
+
+	require.NoError(t, err, "timed out waiting for pod mutation to match expected values")
+	disposer = func() {
+		err := client.CoreV1().Pods(namespace).Delete(t.Context(), pod.Name, metav1.DeleteOptions{})
+		require.NoError(t, err)
+	}
+	return
+}
+
 func NewLimitRanges(t *testing.T, client kubernetes.Interface, namespace string, spec corev1.LimitRangeSpec) (object *corev1.LimitRange, disposer Disposer) {
 	request := corev1.LimitRange{
 		ObjectMeta: metav1.ObjectMeta{

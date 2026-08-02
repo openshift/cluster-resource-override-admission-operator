@@ -5,46 +5,37 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/client-go/kubernetes"
 
 	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
 )
 
-// verifyAdmissionWebhook creates an opt-in namespace and a pod with known
-// resource limits, then asserts that the CRO webhook mutated the pod's
-// resources according to the default CR config (50/25/200).
-func verifyAdmissionWebhook(t *testing.T, kubeClient kubernetes.Interface) {
-	t.Helper()
+// upgradeTestRequirements are the resource limits injected into test pods.
+// The CR config (50/25/200) mutates these to upgradeTestExpected.
+var upgradeTestRequirements = corev1.ResourceRequirements{
+	Limits: corev1.ResourceList{
+		corev1.ResourceMemory: resource.MustParse("512Mi"),
+		corev1.ResourceCPU:    resource.MustParse("2000m"),
+	},
+}
 
-	ns, nsDisposer := helper.NewNamespace(t, kubeClient, "upgrade-verify", true)
-	defer nsDisposer.Dispose()
-
-	requirements := corev1.ResourceRequirements{
+// upgradeTestExpected is what the webhook should produce given
+// upgradeTestRequirements and the CR config (50/25/200):
+//
+//	limitCPUToMemoryPercent=200  -> CPU limit  = 200% * 0.5Gi = 1000m
+//	memoryRequestToLimitPercent=50 -> memory request = 256Mi
+//	cpuRequestToLimitPercent=25    -> CPU request    = 250m
+var upgradeTestExpected = map[string]corev1.ResourceRequirements{
+	"test": {
 		Limits: corev1.ResourceList{
 			corev1.ResourceMemory: resource.MustParse("512Mi"),
-			corev1.ResourceCPU:    resource.MustParse("2000m"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
 		},
-	}
-	pod, podDisposer := helper.NewPodWithResourceRequirement(t, kubeClient, ns.Name, "test", requirements)
-	defer podDisposer.Dispose()
-
-	// limitCPUToMemoryPercent=200 -> CPU limit = 200% * 0.5Gi = 1000m
-	// memoryRequestToLimitPercent=50 -> memory request = 256Mi
-	// cpuRequestToLimitPercent=25 -> CPU request = 250m
-	resourceWant := map[string]corev1.ResourceRequirements{
-		"test": {
-			Limits: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("512Mi"),
-				corev1.ResourceCPU:    resource.MustParse("1000m"),
-			},
-			Requests: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("256Mi"),
-				corev1.ResourceCPU:    resource.MustParse("250m"),
-			},
+		Requests: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("256Mi"),
+			corev1.ResourceCPU:    resource.MustParse("250m"),
 		},
-	}
-	helper.MustMatchMemoryAndCPU(t, resourceWant, &pod.Spec)
+	},
 }
 
 // TestUpgradePre creates the ClusterResourceOverride CR against the old
@@ -74,8 +65,12 @@ func TestUpgradePre(t *testing.T) {
 	f := &helper.PreCondition{Client: client.Kubernetes}
 	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
 
+	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "upgrade-verify", true)
+	defer nsDisposer.Dispose()
+
 	t.Log("verifying webhook mutates pods correctly")
-	verifyAdmissionWebhook(t, client.Kubernetes)
+	_, podDisposer := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.Name, "test", upgradeTestRequirements, upgradeTestExpected)
+	defer podDisposer.Dispose()
 }
 
 // TestUpgradePost validates that a pre-existing ClusterResourceOverride CR
@@ -100,6 +95,10 @@ func TestUpgradePost(t *testing.T) {
 	f := &helper.PreCondition{Client: client.Kubernetes}
 	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
 
+	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "upgrade-verify", true)
+	defer nsDisposer.Dispose()
+
 	t.Log("verifying webhook still mutates pods after upgrade")
-	verifyAdmissionWebhook(t, client.Kubernetes)
+	_, podDisposer := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.Name, "test", upgradeTestRequirements, upgradeTestExpected)
+	defer podDisposer.Dispose()
 }
