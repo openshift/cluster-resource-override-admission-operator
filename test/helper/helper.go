@@ -460,6 +460,85 @@ func MustMatchMemoryAndCPU(t *testing.T, resourceWant map[string]corev1.Resource
 	}
 }
 
+func matchesMemoryAndCPU(resourceWant map[string]corev1.ResourceRequirements, specGot *corev1.PodSpec) bool {
+	for name, want := range resourceWant {
+		var got corev1.ResourceRequirements
+		found := false
+		for i, c := range specGot.Containers {
+			if c.Name == name {
+				got = specGot.Containers[i].Resources
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+		for _, res := range []corev1.ResourceName{corev1.ResourceMemory, corev1.ResourceCPU} {
+			if wantQ, ok := want.Requests[res]; ok {
+				if gotQ, ok := got.Requests[res]; !ok || !wantQ.Equal(gotQ) {
+					return false
+				}
+			}
+			if wantQ, ok := want.Limits[res]; ok {
+				if gotQ, ok := got.Limits[res]; !ok || !wantQ.Equal(gotQ) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// EventuallyMustMatchPodMutation polls by creating throwaway pods until one's
+// resources match the expected values, then returns that pod and a disposer.
+// Use this instead of a sleep when the webhook config may not have propagated yet.
+func EventuallyMustMatchPodMutation(t *testing.T, client kubernetes.Interface, namespace, containerName string, requirements corev1.ResourceRequirements, want map[string]corev1.ResourceRequirements) (pod *corev1.Pod, disposer Disposer) {
+	t.Helper()
+
+	err := wait.PollUntilContextTimeout(t.Context(), 10*time.Second, WaitTimeout, true, func(ctx context.Context) (bool, error) {
+		p, err := client.CoreV1().Pods(namespace).Create(ctx, &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{GenerateName: "croe2e-"},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{
+					Name:      containerName,
+					Image:     "openshift/hello-openshift",
+					Resources: requirements,
+					Ports:     []corev1.ContainerPort{{Name: "app", ContainerPort: 8080}},
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: ptr.To(false),
+						Capabilities:             &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
+						RunAsNonRoot:             ptr.To(true),
+						SeccompProfile:           &corev1.SeccompProfile{Type: "RuntimeDefault"},
+					},
+				}},
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			t.Logf("retrying: failed to create probe pod: %v", err)
+			return false, nil
+		}
+
+		if matchesMemoryAndCPU(want, &p.Spec) {
+			pod = p
+			return true, nil
+		}
+
+		t.Logf("pod mutation not yet matching expected values, retrying")
+		if err := client.CoreV1().Pods(namespace).Delete(t.Context(), p.Name, metav1.DeleteOptions{}); err != nil {
+			t.Logf("warning: failed to delete probe pod %s: %v", p.Name, err)
+		}
+		return false, nil
+	})
+
+	require.NoError(t, err, "timed out waiting for pod mutation to match expected values")
+	disposer = func() {
+		err := client.CoreV1().Pods(namespace).Delete(t.Context(), pod.Name, metav1.DeleteOptions{})
+		require.NoError(t, err)
+	}
+	return
+}
+
 func NewLimitRanges(t *testing.T, client kubernetes.Interface, namespace string, spec corev1.LimitRangeSpec) (object *corev1.LimitRange, disposer Disposer) {
 	request := corev1.LimitRange{
 		ObjectMeta: metav1.ObjectMeta{
@@ -510,6 +589,12 @@ var apiServerGVR = schema.GroupVersionResource{
 	Group:    "config.openshift.io",
 	Version:  "v1",
 	Resource: "apiservers",
+}
+
+var clusterOperatorGVR = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "clusteroperators",
 }
 
 // GetAPIServerTLSProfile returns the raw JSON bytes of the current
@@ -715,4 +800,67 @@ func operandTLSArgsMatch(args []string, want tlsprofile.Args) bool {
 		}
 	}
 	return gotMinVersion == want.MinVersion && gotCipherSuites == want.CipherSuites
+}
+
+// WaitForClusterOperatorsHealthy waits for all cluster operators to report
+// Available=True, Progressing=False, Degraded=False. Logs a warning instead
+// of failing the test if the timeout is reached, since this is a best-effort
+// stabilization step after disruptive operations like TLS profile changes.
+func WaitForClusterOperatorsHealthy(t *testing.T, config *rest.Config) {
+	t.Helper()
+
+	dynClient, err := dynamic.NewForConfig(config)
+	require.NoError(t, err)
+
+	t.Log("waiting for all cluster operators to be healthy (Available=True, Progressing=False, Degraded=False)")
+
+	err = wait.PollUntilContextTimeout(t.Context(), 30*time.Second, 30*time.Minute, true, func(ctx context.Context) (bool, error) {
+		coList, err := dynClient.Resource(clusterOperatorGVR).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			t.Logf("transient error listing cluster operators: %v", err)
+			return false, nil
+		}
+
+		for _, co := range coList.Items {
+			conditions, found, err := unstructured.NestedSlice(co.Object, "status", "conditions")
+			if err != nil || !found {
+				t.Logf("cluster operator %s: no conditions found", co.GetName())
+				return false, nil
+			}
+
+			available := "False"
+			progressing := "True"
+			degraded := "True"
+
+			for _, c := range conditions {
+				cond, ok := c.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				condType, _, _ := unstructured.NestedString(cond, "type")
+				condStatus, _, _ := unstructured.NestedString(cond, "status")
+
+				switch condType {
+				case "Available":
+					available = condStatus
+				case "Progressing":
+					progressing = condStatus
+				case "Degraded":
+					degraded = condStatus
+				}
+			}
+
+			if available != "True" || progressing != "False" || degraded != "False" {
+				t.Logf("cluster operator %s not healthy: Available=%v Progressing=%v Degraded=%v",
+					co.GetName(), available, progressing, degraded)
+				return false, nil
+			}
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		t.Logf("WARNING: timed out waiting for cluster operators to be healthy: %v", err)
+	}
 }

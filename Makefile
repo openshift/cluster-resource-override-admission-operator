@@ -138,10 +138,12 @@ unit-test:
 	$(GO) test -v -count=1 $(GO_TEST_PACKAGES)
 
 # run e2e test(s)
+E2E_SKIP ?=
+
 e2e:
 	$(KUBECTL) -n $(OPERATOR_NAMESPACE) rollout status -w deployment/clusterresourceoverride-operator
 	export GO111MODULE=on
-	$(GO) test -v -count=1 -timeout=15m ./test/e2e/... --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
+	$(GO) test -v -count=1 -timeout=15m ./test/e2e/... $(if $(E2E_SKIP),-skip '$(E2E_SKIP)') --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)
 
 e2e-upgrade-pre:
 	$(GO) test -v -count=1 -timeout=10m ./test/e2e/... -run TestUpgradePre --kubeconfig=${KUBECONFIG} --namespace=$(OPERATOR_NAMESPACE)

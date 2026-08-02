@@ -3,7 +3,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -920,11 +919,7 @@ func TestResourceOverrideConfigurationChange(t *testing.T) {
 	_, err := client.Operator.AutoscalingV1().ResourceOverrides(ns.GetName()).Update(context.TODO(), ro, metav1.UpdateOptions{})
 	require.NoError(t, err)
 
-	// TODO: watch for flakes since we can't guarantee the operand's informer has
-	// synced the updated spec before the pod creation below hits the webhook.
-	time.Sleep(2 * time.Second)
-
-	t.Log("creating pod and verifying updated RO ratios")
+	t.Log("creating pod and verifying updated RO ratios (retrying until informer syncs)")
 	resourceWantAfter := map[string]corev1.ResourceRequirements{
 		"test": {
 			Limits: corev1.ResourceList{
@@ -938,10 +933,8 @@ func TestResourceOverrideConfigurationChange(t *testing.T) {
 		},
 	}
 
-	podGot2, podDisposer2 := helper.NewPodWithResourceRequirement(t, client.Kubernetes, ns.GetName(), "test", requirements)
+	_, podDisposer2 := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.GetName(), "test", requirements, resourceWantAfter)
 	defer podDisposer2.Dispose()
-
-	helper.MustMatchMemoryAndCPU(t, resourceWantAfter, &podGot2.Spec)
 }
 
 func TestResourceOverrideAdmissionWithCPURequestToRequestPercent(t *testing.T) {
