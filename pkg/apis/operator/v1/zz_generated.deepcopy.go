@@ -148,6 +148,16 @@ func (in *ClusterResourceOverrideResources) DeepCopyInto(out *ClusterResourceOve
 		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
+	if in.ValidatingAdmissionPolicyRef != nil {
+		in, out := &in.ValidatingAdmissionPolicyRef, &out.ValidatingAdmissionPolicyRef
+		*out = new(corev1.ObjectReference)
+		**out = **in
+	}
+	if in.ValidatingAdmissionPolicyBindingRef != nil {
+		in, out := &in.ValidatingAdmissionPolicyBindingRef, &out.ValidatingAdmissionPolicyBindingRef
+		*out = new(corev1.ObjectReference)
+		**out = **in
+	}
 	return
 }
 

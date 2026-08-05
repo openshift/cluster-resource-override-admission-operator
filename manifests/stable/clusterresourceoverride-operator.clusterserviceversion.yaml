@@ -347,6 +347,21 @@ spec:
             - list
             - watch
 
+        # to have the power to manage ValidatingAdmissionPolicy resources
+        - apiGroups:
+            - admissionregistration.k8s.io
+          resources:
+            - validatingadmissionpolicies
+            - validatingadmissionpolicybindings
+          verbs:
+            - create
+            - update
+            - patch
+            - delete
+            - get
+            - list
+            - watch
+
         # to grant power to the operand to watch Namespace(s) and LimitRange(s)
         - apiGroups:
             - ""
