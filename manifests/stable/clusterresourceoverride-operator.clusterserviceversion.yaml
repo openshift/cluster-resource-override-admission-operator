@@ -221,6 +221,14 @@ spec:
             - list
             - watch
             - delete
+        - apiGroups:
+            - networking.k8s.io
+          resources:
+            - networkpolicies
+          verbs:
+            - create
+            - delete
+            - update
         serviceAccountName: clusterresourceoverride-operator
       clusterPermissions:
       - rules:
