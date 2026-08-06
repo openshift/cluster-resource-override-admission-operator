@@ -26,6 +26,7 @@ import (
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/tlsprofile"
 )
@@ -127,7 +128,7 @@ func NewNamespace(t *testing.T, client kubernetes.Interface, name string, optIn 
 
 	if optIn {
 		request.ObjectMeta.Labels = map[string]string{
-			"clusterresourceoverrides.admission.autoscaling.openshift.io/enabled": "true",
+			asset.NamespaceOptInLabelKey: "true",
 		}
 	}
 

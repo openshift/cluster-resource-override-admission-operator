@@ -13,11 +13,12 @@ type ResourceOverrideConditionType string
 
 const (
 	ValidationFailure ResourceOverrideConditionType = "ValidationFailure"
+	Ignored           ResourceOverrideConditionType = "Ignored"
 )
 
 const (
-	InvalidParameters = "InvalidParameters"
-	ExemptNamespace   = "ExemptNamespace"
+	InvalidParameters   = "InvalidParameters"
+	NamespaceNotOptedIn = "NamespaceNotOptedIn"
 )
 
 type ResourceOverrideCondition struct {

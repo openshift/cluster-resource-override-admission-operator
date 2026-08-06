@@ -83,13 +83,18 @@ func (r *runner) Run(config *Config, errorCh chan<- error) {
 		return
 	}
 
-	ro, err := resourceoverride.New(&resourceoverride.Options{
+	ro, nsWatchStarter, err := resourceoverride.New(&resourceoverride.Options{
 		ResyncPeriod: DefaultResyncPeriodPrimaryResource,
 		Workers:      DefaultWorkerCount,
 		Client:       clients,
 	})
 	if err != nil {
 		errorCh <- fmt.Errorf("failed to create resourceoverride controller - %s", err.Error())
+		return
+	}
+
+	if err := nsWatchStarter(config.ShutdownContext); err != nil {
+		errorCh <- fmt.Errorf("failed to start namespace watch for resourceoverride controller - %s", err.Error())
 		return
 	}
 
