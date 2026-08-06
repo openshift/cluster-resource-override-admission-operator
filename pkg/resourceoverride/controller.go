@@ -3,11 +3,13 @@ package resourceoverride
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -29,12 +31,11 @@ type Options struct {
 	Client       *operatorruntime.Client
 }
 
-func New(options *Options) (c controller.Interface, err error) {
-	if options == nil || options.Client == nil {
+func New(options *Options) (c controller.Interface, nsWatchStarter NamespaceWatchStarterFunc, err error) {
+	if options == nil || options.Client == nil || options.Client.Operator == nil || options.Client.Kubernetes == nil {
 		err = errors.New("Invalid input to controller.New")
 		return
 	}
-
 	client := options.Client.Operator
 	watcher := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
@@ -58,7 +59,27 @@ func New(options *Options) (c controller.Interface, err error) {
 
 	lister := listers.NewResourceOverrideLister(store.(cache.Indexer))
 
-	reconciler := reconciler.NewReconciler(client, lister)
+	nsFactory := informers.NewSharedInformerFactory(options.Client.Kubernetes, options.ResyncPeriod)
+	nsInformer := nsFactory.Core().V1().Namespaces()
+	namespaceLister := nsInformer.Lister()
+
+	nsInformer.Informer().AddEventHandler(&namespaceEventHandler{
+		roLister: lister,
+		queue:    queue,
+	})
+
+	nsWatchStarter = func(ctx context.Context) error {
+		nsFactory.Start(ctx.Done())
+		status := nsFactory.WaitForCacheSync(ctx.Done())
+		for objType, synced := range status {
+			if !synced {
+				return fmt.Errorf("namespace informer cache sync failed for %s", objType.Name())
+			}
+		}
+		return nil
+	}
+
+	reconciler := reconciler.NewReconciler(client, lister, namespaceLister)
 
 	c = &resourceOverrideController{
 		workers:    options.Workers,

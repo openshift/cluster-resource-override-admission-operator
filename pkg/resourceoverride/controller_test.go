@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	kubefake "k8s.io/client-go/kubernetes/fake"
+
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned/fake"
 	operatorruntime "github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 )
@@ -33,12 +35,24 @@ func TestNew(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "nil kubernetes client",
+			options: &Options{
+				ResyncPeriod: 10 * time.Minute,
+				Workers:      1,
+				Client: &operatorruntime.Client{
+					Operator: fake.NewSimpleClientset(),
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "valid options",
 			options: &Options{
 				ResyncPeriod: 10 * time.Minute,
 				Workers:      2,
 				Client: &operatorruntime.Client{
-					Operator: fake.NewSimpleClientset(),
+					Operator:   fake.NewSimpleClientset(),
+					Kubernetes: kubefake.NewSimpleClientset(),
 				},
 			},
 			wantErr:     false,
@@ -49,7 +63,7 @@ func TestNew(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c, err := New(test.options)
+			c, _, err := New(test.options)
 			if test.wantErr {
 				require.Error(t, err)
 				require.Nil(t, c)

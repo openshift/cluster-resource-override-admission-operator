@@ -3,15 +3,16 @@ package reconciler
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
+	"github.com/openshift/cluster-resource-override-admission-operator/pkg/asset"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/clientset/versioned"
 	autoscalingv1listers "github.com/openshift/cluster-resource-override-admission-operator/pkg/generated/listers/autoscaling/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/resourceoverride/internal/condition"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 	controllerreconciler "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -25,15 +26,17 @@ var (
 )
 
 type reconciler struct {
-	client  versioned.Interface
-	lister  autoscalingv1listers.ResourceOverrideLister
-	updater *StatusUpdater
+	client          versioned.Interface
+	lister          autoscalingv1listers.ResourceOverrideLister
+	namespaceLister corev1listers.NamespaceLister
+	updater         *StatusUpdater
 }
 
-func NewReconciler(client versioned.Interface, lister autoscalingv1listers.ResourceOverrideLister) *reconciler {
+func NewReconciler(client versioned.Interface, lister autoscalingv1listers.ResourceOverrideLister, namespaceLister corev1listers.NamespaceLister) *reconciler {
 	return &reconciler{
-		client: client,
-		lister: lister,
+		client:          client,
+		lister:          lister,
+		namespaceLister: namespaceLister,
 		updater: &StatusUpdater{
 			client: client,
 		},
@@ -61,6 +64,12 @@ func (r *reconciler) Reconcile(ctx context.Context, request controllerreconciler
 
 	Validate(copy)
 
+	if nsErr := r.checkNamespaceOptIn(copy); nsErr != nil {
+		klog.Errorf("[reconciler] key=%s failed to check namespace opt-in - %s", request.Name, nsErr.Error())
+		err = nsErr
+		return
+	}
+
 	err = r.updater.Update(original, copy)
 	if err != nil {
 		klog.Errorf("[reconciler] key=%s failed to update status - %s", request.Name, err.Error())
@@ -71,11 +80,6 @@ func (r *reconciler) Reconcile(ctx context.Context, request controllerreconciler
 
 func Validate(current *autoscalingv1.ResourceOverride) {
 	builder := condition.NewBuilderWithStatus(&current.Status)
-
-	if isExemptNamespace(current.Namespace) {
-		builder.WithValidationFailure(autoscalingv1.ExemptNamespace, fmt.Sprintf("resourceoverride %s/%s is in an exempt namespace", current.Namespace, current.Name))
-		return
-	}
 
 	validationErr := current.Spec.PodResourceOverride.Validate()
 	if validationErr != nil {
@@ -93,12 +97,18 @@ func Validate(current *autoscalingv1.ResourceOverride) {
 	builder.WithValidationCleared()
 }
 
-func isExemptNamespace(namespace string) bool {
-	switch namespace {
-	case "openshift", "kube", "kubernetes":
-		return true
+func (r *reconciler) checkNamespaceOptIn(current *autoscalingv1.ResourceOverride) error {
+	ns, err := r.namespaceLister.Get(current.Namespace)
+	if err != nil {
+		return err
 	}
-	return strings.HasPrefix(namespace, "openshift-") ||
-		strings.HasPrefix(namespace, "kube-") ||
-		strings.HasPrefix(namespace, "kubernetes-")
+
+	builder := condition.NewBuilderWithStatus(&current.Status)
+	if ns.Labels[asset.NamespaceOptInLabelKey] != "true" {
+		builder.WithIgnored(autoscalingv1.NamespaceNotOptedIn, fmt.Sprintf("namespace %q does not have the %s=true label", current.Namespace, asset.NamespaceOptInLabelKey))
+		return nil
+	}
+
+	builder.WithIgnoredCleared()
+	return nil
 }

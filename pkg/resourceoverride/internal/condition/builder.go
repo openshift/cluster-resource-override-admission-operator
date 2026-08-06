@@ -53,6 +53,34 @@ func (b *Builder) WithValidationCleared() (builder *Builder) {
 	return b
 }
 
+func (b *Builder) WithIgnored(reason string, message string) (builder *Builder) {
+	b.init()
+
+	desired := &autoscalingv1.ResourceOverrideCondition{
+		Type:               autoscalingv1.Ignored,
+		Status:             corev1.ConditionTrue,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.NewTime(b.clock.Now()),
+	}
+	b.WithCondition(desired)
+
+	return b
+}
+
+func (b *Builder) WithIgnoredCleared() (builder *Builder) {
+	b.init()
+
+	desired := &autoscalingv1.ResourceOverrideCondition{
+		Type:               autoscalingv1.Ignored,
+		Status:             corev1.ConditionFalse,
+		LastTransitionTime: metav1.NewTime(b.clock.Now()),
+	}
+	b.WithCondition(desired)
+
+	return b
+}
+
 func (b *Builder) WithCondition(desired *autoscalingv1.ResourceOverrideCondition) {
 	if desired == nil {
 		return

@@ -7,6 +7,10 @@ import (
 	"github.com/openshift/cluster-resource-override-admission-operator/pkg/runtime"
 )
 
+const (
+	NamespaceOptInLabelKey = "clusterresourceoverrides.admission.autoscaling.openshift.io/enabled"
+)
+
 func New(context runtime.OperandContext) *Asset {
 	values := &Values{
 		Name:                           context.WebhookName(),
@@ -17,6 +21,7 @@ func New(context runtime.OperandContext) *Asset {
 		AdmissionAPIGroup:              "admission.autoscaling.openshift.io",
 		AdmissionAPIVersion:            "v1",
 		AdmissionAPIResource:           "clusterresourceoverrides",
+		NamespaceOptInLabelKey:         NamespaceOptInLabelKey,
 		OwnerLabelKey:                  "operator.autoscaling.openshift.io/clusterresourceoverride",
 		OwnerLabelValue:                "true",
 		SelectorLabelKey:               "clusterresourceoverride",
@@ -42,19 +47,20 @@ func (a *Asset) Values() *Values {
 }
 
 type Values struct {
-	Name                 string
-	Namespace            string
-	ServiceAccountName   string
-	OperandImage         string
-	OperandVersion       string
-	AdmissionAPIGroup    string
-	AdmissionAPIVersion  string
-	AdmissionAPIResource string
-	OwnerLabelKey        string
-	OwnerLabelValue      string
-	SelectorLabelKey     string
-	SelectorLabelValue   string
-	ConfigurationKey     string
+	Name                   string
+	Namespace              string
+	ServiceAccountName     string
+	OperandImage           string
+	OperandVersion         string
+	AdmissionAPIGroup      string
+	AdmissionAPIVersion    string
+	AdmissionAPIResource   string
+	NamespaceOptInLabelKey string
+	OwnerLabelKey          string
+	OwnerLabelValue        string
+	SelectorLabelKey       string
+	SelectorLabelValue     string
+	ConfigurationKey       string
 
 	ConfigurationHashAnnotationKey string
 	ServingCertHashAnnotationKey   string

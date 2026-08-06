@@ -132,13 +132,13 @@ func TestFind(t *testing.T) {
 				{
 					Type:   autoscalingv1.ValidationFailure,
 					Status: corev1.ConditionTrue,
-					Reason: autoscalingv1.ExemptNamespace,
+					Reason: autoscalingv1.InvalidParameters,
 				},
 			},
 		}
 		result := Find(status, autoscalingv1.ValidationFailure)
 		require.NotNil(t, result)
-		require.Equal(t, autoscalingv1.ExemptNamespace, result.Reason)
+		require.Equal(t, autoscalingv1.InvalidParameters, result.Reason)
 	})
 }
 
