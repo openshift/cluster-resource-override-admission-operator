@@ -8,14 +8,16 @@ import (
 
 // Lister is a set of Lister(s) for secondary resource(s)
 type Lister struct {
-	deployment     listersappsv1.DeploymentLister
-	daemonset      listersappsv1.DaemonSetLister
-	pod            listerscorev1.PodLister
-	configmap      listerscorev1.ConfigMapLister
-	service        listerscorev1.ServiceLister
-	secret         listerscorev1.SecretLister
-	serviceaccount listerscorev1.ServiceAccountLister
-	webhook        admissionregistrationv1.MutatingWebhookConfigurationLister
+	deployment             listersappsv1.DeploymentLister
+	daemonset              listersappsv1.DaemonSetLister
+	pod                    listerscorev1.PodLister
+	configmap              listerscorev1.ConfigMapLister
+	service                listerscorev1.ServiceLister
+	secret                 listerscorev1.SecretLister
+	serviceaccount         listerscorev1.ServiceAccountLister
+	webhook                admissionregistrationv1.MutatingWebhookConfigurationLister
+	admissionpolicy        admissionregistrationv1.ValidatingAdmissionPolicyLister
+	admissionpolicybinding admissionregistrationv1.ValidatingAdmissionPolicyBindingLister
 }
 
 func (l *Lister) CoreV1ConfigMapLister() listerscorev1.ConfigMapLister {
@@ -40,4 +42,12 @@ func (l *Lister) AppsV1DaemonSetLister() listersappsv1.DaemonSetLister {
 
 func (l *Lister) AdmissionRegistrationV1MutatingWebhookConfigurationLister() admissionregistrationv1.MutatingWebhookConfigurationLister {
 	return l.webhook
+}
+
+func (l *Lister) AdmissionRegistrationV1ValidatingAdmissionPolicyLister() admissionregistrationv1.ValidatingAdmissionPolicyLister {
+	return l.admissionpolicy
+}
+
+func (l *Lister) AdmissionRegistrationV1ValidatingAdmissionPolicyBindingLister() admissionregistrationv1.ValidatingAdmissionPolicyBindingLister {
+	return l.admissionpolicybinding
 }

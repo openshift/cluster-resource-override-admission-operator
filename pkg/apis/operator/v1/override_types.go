@@ -99,6 +99,14 @@ type ClusterResourceOverrideResources struct {
 	// APiServiceRef points to the APIService object related to the ClusterResourceOverride
 	// admission webhook server.
 	MutatingWebhookConfigurationRef *corev1.ObjectReference `json:"mutatingWebhookConfigurationRef,omitempty"`
+
+	// ValidatingAdmissionPolicyRef points to the ValidatingAdmissionPolicy that
+	// prevents ResourceOverride objects from being created in exempt namespaces.
+	ValidatingAdmissionPolicyRef *corev1.ObjectReference `json:"validatingAdmissionPolicyRef,omitempty"`
+
+	// ValidatingAdmissionPolicyBindingRef points to the ValidatingAdmissionPolicyBinding
+	// that activates the exempt namespace policy.
+	ValidatingAdmissionPolicyBindingRef *corev1.ObjectReference `json:"validatingAdmissionPolicyBindingRef,omitempty"`
 }
 
 // PodResourceOverride is the configuration for the admission controller which

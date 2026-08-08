@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	webhookName = "clusterresourceoverrides.admission.autoscaling.openshift.io"
+	webhookName                   = "clusterresourceoverrides.admission.autoscaling.openshift.io"
+	validatingAdmissionPolicyName = "resourceoverride-exempt-namespace"
 )
 
 type PreCondition struct {
@@ -60,5 +61,20 @@ func (f *PreCondition) MustHaveClusterResourceOverrideAdmissionConfiguration(t *
 
 	require.NoErrorf(t, err, "MutatingWebhookConfiguration %s resource not found in /apis/admissionregistration.k8s.io/v1 discovery document", webhookName)
 	require.NoErrorf(t, pollErr, "MutatingWebhookConfiguration %s resource not found in /apis/admissionregistration.k8s.io/v1 discovery document prior to timeout", webhookName)
+	require.NotNil(t, configuration)
+}
+
+func (f *PreCondition) MustHaveValidatingAdmissionPolicy(t *testing.T) {
+	t.Logf("fetching ValidatingAdmissionPolicy %s", validatingAdmissionPolicyName)
+
+	var configuration *admissionregistrationv1.ValidatingAdmissionPolicy
+	var err error
+	pollErr := wait.Poll(WaitInterval, WaitTimeout, func() (bool, error) {
+		configuration, err = f.Client.AdmissionregistrationV1().ValidatingAdmissionPolicies().Get(context.TODO(), validatingAdmissionPolicyName, metav1.GetOptions{})
+		return (err == nil && configuration != nil), nil
+	})
+
+	require.NoErrorf(t, err, "ValidatingAdmissionPolicy %s resource not found", validatingAdmissionPolicyName)
+	require.NoErrorf(t, pollErr, "ValidatingAdmissionPolicy %s resource not found prior to timeout", validatingAdmissionPolicyName)
 	require.NotNil(t, configuration)
 }
