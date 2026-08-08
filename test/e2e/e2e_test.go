@@ -17,9 +17,13 @@ import (
 )
 
 const (
-	operatorNamespace = "openshift-cluster-resource-override"
-	configMapName     = "clusterresourceoverride-configuration"
+	configMapName = "clusterresourceoverride-configuration"
 )
+
+// operatorNamespace is set from the --namespace flag (or OPERATOR_NAMESPACE env var as
+// a fallback) in TestMain. Tests that reference the operator namespace use this variable
+// so that running `OPERATOR_NAMESPACE=my-ns make e2e` works end-to-end.
+var operatorNamespace string
 
 func TestClusterResourceOverrideAdmissionWithOptIn(t *testing.T) {
 	tests := []struct {

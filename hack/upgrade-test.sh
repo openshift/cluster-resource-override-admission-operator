@@ -20,7 +20,7 @@ set -euo pipefail
 : "${NEW_BUNDLE:?NEW_BUNDLE must be set}"
 : "${KUBECONFIG:?KUBECONFIG must be set}"
 
-NAMESPACE=openshift-cluster-resource-override
+NAMESPACE="${OPERATOR_NAMESPACE:-openshift-cluster-resource-override}"
 
 cleanup() {
     if [[ "${SKIP_CLEANUP:-}" == "true" ]]; then
