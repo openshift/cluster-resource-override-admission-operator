@@ -144,6 +144,32 @@ func NewNamespace(t *testing.T, client kubernetes.Interface, name string, optIn 
 	return
 }
 
+// NewExactNamespace gets or creates a namespace with the given name. Only use when the exact name matters (e.g. testing system namespace policies). Prefer NewNamespace for all other tests.
+func NewExactNamespace(t *testing.T, client kubernetes.Interface, name string) (ns *corev1.Namespace, disposer Disposer) {
+	created := false
+	object, err := client.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
+	if k8serrors.IsNotFound(err) {
+		request := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		}
+		object, err = client.CoreV1().Namespaces().Create(context.TODO(), request, metav1.CreateOptions{})
+		created = true
+	}
+	require.NoError(t, err)
+	require.NotNil(t, object)
+
+	ns = object
+	disposer = func() {
+		if created {
+			err := client.CoreV1().Namespaces().Delete(context.TODO(), object.Name, metav1.DeleteOptions{})
+			require.NoError(t, err)
+		}
+	}
+	return
+}
+
 func NewPod(t *testing.T, client kubernetes.Interface, namespace string, spec corev1.PodSpec) (pod *corev1.Pod, disposer Disposer) {
 	request := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{

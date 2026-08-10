@@ -42,6 +42,8 @@ func New(options *Options) (lister *Lister, startFunc StarterFunc) {
 	secret := factory.Core().V1().Secrets()
 	serviceaccount := factory.Core().V1().ServiceAccounts()
 	webhook := factory.Admissionregistration().V1().MutatingWebhookConfigurations()
+	admissionpolicy := factory.Admissionregistration().V1().ValidatingAdmissionPolicies()
+	admissionpolicybinding := factory.Admissionregistration().V1().ValidatingAdmissionPolicyBindings()
 
 	apiServerConfigFactory := dynamicinformer.NewDynamicSharedInformerFactory(options.Client.RawDynamic, options.ResyncPeriod)
 	apiServerConfigInformer := apiServerConfigFactory.ForResource(tlsprofile.APIServerGVR).Informer()
@@ -57,6 +59,8 @@ func New(options *Options) (lister *Lister, startFunc StarterFunc) {
 		secret.Informer().AddEventHandler(handler)
 		serviceaccount.Informer().AddEventHandler(handler)
 		webhook.Informer().AddEventHandler(handler)
+		admissionpolicy.Informer().AddEventHandler(handler)
+		admissionpolicybinding.Informer().AddEventHandler(handler)
 
 		if directEnqueuer, ok := enqueuer.(runtime.DirectEnqueuer); ok && options.PrimaryResourceName != "" {
 			apiServerConfigInformer.AddEventHandler(
@@ -82,14 +86,16 @@ func New(options *Options) (lister *Lister, startFunc StarterFunc) {
 	}
 
 	lister = &Lister{
-		deployment:     deployment.Lister(),
-		daemonset:      daemonset.Lister(),
-		pod:            pod.Lister(),
-		configmap:      configmap.Lister(),
-		service:        service.Lister(),
-		secret:         secret.Lister(),
-		serviceaccount: serviceaccount.Lister(),
-		webhook:        webhook.Lister(),
+		deployment:             deployment.Lister(),
+		daemonset:              daemonset.Lister(),
+		pod:                    pod.Lister(),
+		configmap:              configmap.Lister(),
+		service:                service.Lister(),
+		secret:                 secret.Lister(),
+		serviceaccount:         serviceaccount.Lister(),
+		webhook:                webhook.Lister(),
+		admissionpolicy:        admissionpolicy.Lister(),
+		admissionpolicybinding: admissionpolicybinding.Lister(),
 	}
 
 	return
