@@ -1,0 +1,31 @@
+---
+description: Code Review Rules
+alwaysApply: false
+type: manual
+---
+
+Prior to submitting or pushing code, these steps should be reviewed.
+
+## Reviewing the introduced changes
+
+Analyze the code changes for correctness, style, and potential issues.
+
+## Generate a mermaid diagram with the introduced code
+- If you add enumerations, remove the . and change them to -
+- Always in english
+- Avoid using {} or () in the names
+
+## Generate a commit message according the code changed
+- All commit messages should follow the format outlined in the @git-commit-format.mdc rule.
+
+## Basic Rules
+- If a code change does not make any sense, please call that out
+- Don't provide reasoning without supporting evidence
+
+## Go best practices
+- Follow the @100-go-mistakes.mdc rules
+
+## How code should be scoped
+- Keep changes focused and minimal
+- Avoid mixing unrelated changes in a single commit or PR
+- Ensure new code follows existing patterns in the codebase (handler chain, operand context, secondary watches)

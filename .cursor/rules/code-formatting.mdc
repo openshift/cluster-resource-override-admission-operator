@@ -1,0 +1,13 @@
+---
+description: Code formatting rules for the project.
+globs:
+alwaysApply: true
+---
+# Code quality, formatting and conventions
+
+- Run `make verify` to verify formatting and vet checks pass before committing
+- Run `make test` to ensure tests pass before committing
+- Run `make codegen` after modifying API types to regenerate clients, listers, informers, and deepcopy
+- Run `make vendor` after changing dependencies to update the vendor directory
+- Always use "When ... it should ..." format for describing test cases when creating unit tests
+- Always include unit tests when creating new functions or modifying existing ones
