@@ -304,8 +304,8 @@ go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
-# golang.org/x/crypto v0.24.0
-## explicit; go 1.18
+# golang.org/x/crypto v0.33.0
+## explicit; go 1.20
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 # golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
@@ -317,13 +317,14 @@ golang.org/x/exp/slices
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.26.0
+# golang.org/x/net v0.26.0 => github.com/openshift-sustaining/net v0.35.0-sec.3
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
+golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
 golang.org/x/net/websocket
@@ -331,20 +332,20 @@ golang.org/x/net/websocket
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.7.0
+# golang.org/x/sync v0.11.0
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.21.0
+# golang.org/x/sys v0.30.0
 ## explicit; go 1.18
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.21.0
+# golang.org/x/term v0.29.0
 ## explicit; go 1.18
 golang.org/x/term
-# golang.org/x/text v0.16.0
+# golang.org/x/text v0.22.0
 ## explicit; go 1.18
 golang.org/x/text/feature/plural
 golang.org/x/text/internal
@@ -1218,3 +1219,4 @@ sigs.k8s.io/yaml/goyaml.v2
 # github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.16.0
 # github.com/prometheus/client_model => github.com/prometheus/client_model v0.4.0
 # github.com/prometheus/common => github.com/prometheus/common v0.44.0
+# golang.org/x/net => github.com/openshift-sustaining/net v0.35.0-sec.3
