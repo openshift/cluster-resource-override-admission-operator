@@ -891,3 +891,47 @@ func WaitForClusterOperatorsHealthy(t *testing.T, config *rest.Config) {
 		t.Logf("WARNING: timed out waiting for cluster operators to be healthy: %v", err)
 	}
 }
+
+// HasNodesWithArch returns true if the cluster has at least one node labeled
+// kubernetes.io/arch=<arch>. Used to opt in to real-hardware assertions (e.g.
+// nodeSelector pinning) only when the target architecture is actually present,
+// so the same test can run on any dev cluster without hard-failing on
+// amd64-only environments.
+func HasNodesWithArch(t *testing.T, client kubernetes.Interface, arch string) bool {
+	t.Helper()
+
+	nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("kubernetes.io/arch=%s", arch),
+	})
+	require.NoError(t, err)
+
+	return len(nodes.Items) > 0
+}
+
+// WaitForWarningEvent polls for a Warning event with the given reason recorded
+// against the named object in namespace, and fails the test if none appears
+// before WaitTimeout.
+func WaitForWarningEvent(t *testing.T, client kubernetes.Interface, namespace, reason, involvedObjectName string) *corev1.Event {
+	t.Helper()
+
+	var found *corev1.Event
+	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (bool, error) {
+		events, err := client.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		for i := range events.Items {
+			event := &events.Items[i]
+			if event.Type == corev1.EventTypeWarning && event.Reason == reason && event.InvolvedObject.Name == involvedObjectName {
+				found = event
+				return true, nil
+			}
+		}
+
+		return false, nil
+	})
+
+	require.NoErrorf(t, err, "timed out waiting for Warning event reason=%s on object=%s in namespace=%s", reason, involvedObjectName, namespace)
+	return found
+}
