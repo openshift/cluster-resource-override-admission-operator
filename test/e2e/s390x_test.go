@@ -34,7 +34,7 @@ const s390xArch = "s390x"
 
 // s390xTestImage is the container image used by all IBM Z e2e test pods.
 // registry.access.redhat.com/ubi9/httpd-24:latest — no auth required, s390x
-// multi-arch manifest confirmed running on rhcl-mc3 worker nodes.
+// multi-arch manifest confirmed running on s390x ocp cluster worker nodes.
 const s390xTestImage = "registry.access.redhat.com/ubi9/httpd-24:latest"
 
 func s390xContainer(name string, requirements corev1.ResourceRequirements) corev1.Container {
