@@ -1,7 +1,7 @@
 package e2e
 
 // Tests in this file cover the cpuRequestToRequestPercent enhancement that IBM Z
-// (s390x) workloads rely on (AUTOSCALE-705 / MULTIARCH-5562): on s390x, CPU limits
+// (s390x) workloads rely on s390x, CPU limits
 // aren't fabricated from memory the way amd64 profiles do, so charts typically ship
 // a CPU *request* with no CPU *limit* and need that request scaled directly.
 //
@@ -54,8 +54,8 @@ func s390xContainer(name string, requirements corev1.ResourceRequirements) corev
 // TestIBMZCPURequestToRequestPercentNoCPULimit covers the base IBM Z scenario: a pod
 // with a CPU request and no CPU limit gets its request scaled by
 // cpuRequestToRequestPercent, since limitCPUToMemoryPercent never runs without a
-// memory limit to derive a CPU limit from, so OverrideCPUWithLimit (step 3) is a
-// no-op and OverrideCPUWithRequest (step 4) is the only thing that can act.
+// memory limit to derive a CPU limit from, so OverrideCPUWithLimit is a
+// no-op and OverrideCPUWithRequest is the only thing that can act.
 func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
@@ -109,11 +109,8 @@ func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 }
 
 // TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest covers a profile
-// that configures both cpuRequestToLimitPercent (step 3) and
-// cpuRequestToRequestPercent (step 4) together. Per the documented mutator
-// ordering, step 4 always runs last and overwrites step 3's result, deriving
-// from the pod's *original* CPU request (preserved via annotation before step 3
-// runs), not from whatever step 3 already wrote into requests.cpu.
+// that configures both cpuRequestToLimitPercent and
+// cpuRequestToRequestPercent together.
 func TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
@@ -122,8 +119,8 @@ func TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest(t *testing.T)
 
 	override := operatorv1.PodResourceOverride{
 		Spec: operatorv1.PodResourceOverrideSpec{
-			CPURequestToLimitPercent:   25, // step 3: would set requests.cpu = 25% of the 4000m limit = 1000m
-			CPURequestToRequestPercent: 50, // step 4: overwrites with 50% of the *original* 800m request = 400m
+			CPURequestToLimitPercent:   25, //would set requests.cpu = 25% of the 4000m limit = 1000m
+			CPURequestToRequestPercent: 50, //overwrites with 50% of the *original* 800m request = 400m
 		},
 	}
 	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
