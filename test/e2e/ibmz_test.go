@@ -3,15 +3,16 @@ package e2e
 // ibmz_test.go contains IBM Z coverage for the CROO e2e suite.
 //
 // TestIBMZCPURequestToRequestPercentNoCPULimit is s390x hardware-gated: it calls
-// t.Skip when no schedulable s390x node is present, so it only runs on real IBM Z
-// clusters. The mutation math it exercises is already covered by
+// t.Skip when no schedulable s390x node is present. It verifies admission mutation
+// AND that the pod actually reaches Running on a real s390x node. The general
+// cpuRequestToRequestPercent mutation math is already covered by
 // TestClusterResourceOverrideAdmissionWithCPURequestToRequestPercent in e2e_test.go;
-// the unique value here is real IFL hardware pinning and the annotation assertion.
+// the unique value here is real IFL hardware execution and the full annotation contract.
 //
 // TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest and
 // TestIBMZResourceOverrideConflictEmitsWarningEventOnLoser cover scenarios not
-// present in e2e_test.go and run on all architectures — they were motivated by
-// IBM Z workload patterns but the behaviour they test is architecture-agnostic.
+// present in e2e_test.go. They verify admission mutation only (no nodeSelector) and
+// run on all architectures — the behaviour they test is architecture-agnostic.
 
 import (
 	"testing"
@@ -20,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
@@ -48,15 +50,18 @@ func s390xContainer(name string, requirements corev1.ResourceRequirements) corev
 	}
 }
 
-// TestIBMZCPURequestToRequestPercentNoCPULimit verifies that on a real s390x node a
-// pod with a CPU request and no CPU limit has its request scaled by
-// cpuRequestToRequestPercent, and that the original request is preserved via
-// annotation so a later webhook reinvocation cannot compound the scaling.
+// TestIBMZCPURequestToRequestPercentNoCPULimit verifies the full contract for the
+// standard IBM Z workload pattern: a pod with a CPU request and no CPU limit.
 //
-// Skipped on clusters without schedulable s390x nodes: the general
-// cpuRequestToRequestPercent mutation math is already covered by
-// TestClusterResourceOverrideAdmissionWithCPURequestToRequestPercent in e2e_test.go.
-// The unique value here is real IBM Z hardware pinning and the annotation assertion.
+//  1. Admission mutation: cpuRequestToRequestPercent=50 scales 1000m → 500m.
+//  2. No CPU limit is fabricated by the webhook (IBM Z workloads must not have
+//     limits injected — see docs on IFL scheduling).
+//  3. The original 1000m request is preserved in the per-container annotation so
+//     a later webhook reinvocation cannot compound the scaling.
+//  4. The pod is scheduled and reaches Running on a real s390x node, confirming
+//     the mutated spec is accepted by the s390x kubelet/runtime.
+//
+// Skipped on clusters without schedulable s390x nodes.
 func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
@@ -91,7 +96,7 @@ func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 		},
 	}
 
-	t.Log("pinning test pod to s390x node to verify real IBM Z scheduling/runtime")
+	t.Log("submitting pod pinned to s390x node — verifying admission mutation and real IBM Z execution")
 	resourceWant := map[string]corev1.ResourceRequirements{
 		"app": {
 			Requests: corev1.ResourceList{
@@ -99,15 +104,30 @@ func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 			},
 		},
 	}
-	// Use EventuallyMustMatchPodSpec rather than a single NewPod: the webhook
-	// configuration may not have propagated to all operand replicas yet even after
-	// Available=True. Retrying avoids spurious failures after a config-change test.
+	// Retry until the webhook config has propagated to all operand replicas.
 	podGot, podDisposer := helper.EventuallyMustMatchPodSpec(t, client.Kubernetes, ns.GetName(), spec, resourceWant)
 	defer podDisposer.Dispose()
 
-	require.Containsf(t, podGot.Annotations,
-		"clusterresourceoverrides.admission.autoscaling.openshift.io/original-cpu-request-app",
-		"expected the original CPU request to be recorded so a later webhook reinvocation can't compound the scaling")
+	// 1. No CPU limit must have been injected — cpuRequestToRequestPercent must
+	//    not fabricate a limit when none was submitted.
+	require.NotContains(t, podGot.Spec.Containers[0].Resources.Limits, corev1.ResourceCPU,
+		"webhook must not inject a CPU limit when the submitted pod had none")
+
+	// 2. Original request annotation must exist and carry the pre-mutation value.
+	const annotationKey = "clusterresourceoverrides.admission.autoscaling.openshift.io/original-cpu-request-app"
+	require.Contains(t, podGot.Annotations, annotationKey,
+		"original CPU request annotation must be present to prevent compounding on webhook reinvocation")
+	originalCPU := resource.MustParse("1000m")
+	require.Equal(t, originalCPU.String(), podGot.Annotations[annotationKey],
+		"annotation must record the original 1000m request, not the mutated 500m value")
+
+	// 3. Pod must reach Running on an s390x node — confirms the mutated spec is
+	//    accepted by the real s390x kubelet and container runtime.
+	nodeName := helper.WaitForPodRunningOnNode(t, client.Kubernetes, ns.GetName(), podGot.Name)
+	node, err := client.Kubernetes.CoreV1().Nodes().Get(t.Context(), nodeName, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, s390xArch, node.Labels["kubernetes.io/arch"],
+		"pod must have run on an s390x node, not %s", nodeName)
 }
 
 // TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest covers a profile
@@ -157,9 +177,8 @@ func TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest(t *testing.T)
 			},
 		},
 	}
-	podGot, podDisposer := helper.EventuallyMustMatchPodSpec(t, client.Kubernetes, ns.GetName(), spec, resourceWant)
+	_, podDisposer := helper.EventuallyMustMatchPodSpec(t, client.Kubernetes, ns.GetName(), spec, resourceWant)
 	defer podDisposer.Dispose()
-	_ = podGot
 }
 
 // TestIBMZResourceOverrideConflictEmitsWarningEventOnLoser covers the namespace-scoped

@@ -963,6 +963,28 @@ func HasNodesWithArch(t *testing.T, client kubernetes.Interface, arch string) bo
 	return false
 }
 
+// WaitForPodRunningOnNode polls until the named pod reaches Running phase and
+// returns the node it was scheduled to. Fails the test if the pod does not
+// reach Running within WaitTimeout.
+func WaitForPodRunningOnNode(t *testing.T, client kubernetes.Interface, namespace, name string) string {
+	t.Helper()
+
+	var nodeName string
+	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (bool, error) {
+		pod, err := client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if pod.Status.Phase == corev1.PodRunning {
+			nodeName = pod.Spec.NodeName
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoErrorf(t, err, "timed out waiting for pod %s/%s to reach Running phase", namespace, name)
+	return nodeName
+}
+
 // WaitForWarningEvent polls for a Warning event with the given reason recorded
 // against the named object in namespace, and fails the test if none appears
 // before WaitTimeout.
