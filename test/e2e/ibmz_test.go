@@ -15,7 +15,9 @@ package e2e
 // run on all architectures — the behaviour they test is architecture-agnostic.
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -32,8 +34,6 @@ import (
 const s390xArch = "s390x"
 
 // s390xTestImage is the container image used by IBM Z e2e test pods.
-// registry.access.redhat.com/ubi9/httpd-24:latest — no auth required, s390x
-// multi-arch manifest available on s390x OCP cluster worker nodes.
 const s390xTestImage = "registry.access.redhat.com/ubi9/httpd-24:latest"
 
 func s390xContainer(name string, requirements corev1.ResourceRequirements) corev1.Container {
@@ -124,7 +124,9 @@ func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 	// 3. Pod must reach Running on an s390x node — confirms the mutated spec is
 	//    accepted by the real s390x kubelet and container runtime.
 	nodeName := helper.WaitForPodRunningOnNode(t, client.Kubernetes, ns.GetName(), podGot.Name)
-	node, err := client.Kubernetes.CoreV1().Nodes().Get(t.Context(), nodeName, metav1.GetOptions{})
+	nodeCtx, nodeCancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer nodeCancel()
+	node, err := client.Kubernetes.CoreV1().Nodes().Get(nodeCtx, nodeName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, s390xArch, node.Labels["kubernetes.io/arch"],
 		"pod must have run on an s390x node, not %s", nodeName)
