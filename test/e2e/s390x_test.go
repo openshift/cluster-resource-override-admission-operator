@@ -1,7 +1,7 @@
 package e2e
 
 // Tests in this file cover the cpuRequestToRequestPercent enhancement that IBM Z
-// (s390x) workloads rely on s390x, CPU limits
+// (s390x) workloads rely on: on s390x, CPU limits
 // aren't fabricated from memory the way amd64 profiles do, so charts typically ship
 // a CPU *request* with no CPU *limit* and need that request scaled directly.
 //
@@ -109,8 +109,10 @@ func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 }
 
 // TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest covers a profile
-// that configures both cpuRequestToLimitPercent and
-// cpuRequestToRequestPercent together.
+// that configures both cpuRequestToLimitPercent and cpuRequestToRequestPercent
+// together. cpuRequestToRequestPercent always runs last and overwrites the result
+// of cpuRequestToLimitPercent, deriving from the pod's original CPU request
+// (preserved via annotation) rather than the intermediate value already written.
 func TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
@@ -119,8 +121,8 @@ func TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest(t *testing.T)
 
 	override := operatorv1.PodResourceOverride{
 		Spec: operatorv1.PodResourceOverrideSpec{
-			CPURequestToLimitPercent:   25, //would set requests.cpu = 25% of the 4000m limit = 1000m
-			CPURequestToRequestPercent: 50, //overwrites with 50% of the *original* 800m request = 400m
+			CPURequestToLimitPercent:   25, // would set requests.cpu = 25% of the 4000m limit = 1000m
+			CPURequestToRequestPercent: 50, // overwrites with 50% of the *original* 800m request = 400m
 		},
 	}
 	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
