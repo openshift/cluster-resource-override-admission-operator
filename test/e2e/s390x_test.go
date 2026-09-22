@@ -1,20 +1,12 @@
 package e2e
 
-// Tests in this file cover the cpuRequestToRequestPercent enhancement that IBM Z
-// (s390x) workloads rely on: on s390x, CPU limits
-// aren't fabricated from memory the way amd64 profiles do, so charts typically ship
-// a CPU *request* with no CPU *limit* and need that request scaled directly.
+// s390x_test.go contains tests that are specific to IBM Z (s390x) hardware.
+// Every test in this file calls t.Skip when no schedulable s390x node is present,
+// so the suite remains runnable on any cluster but only exercises real-hardware
+// paths when the target architecture is actually available.
 //
-// The mutation math itself is architecture-agnostic Go code, so these tests run on
-// any cluster. TestIBMZCPURequestToRequestPercentNoCPULimit additionally pins the
-// pod to a real s390x node via nodeSelector when the cluster has one, to prove the
-// same behavior holds under the actual kubelet/runtime; on amd64-only dev clusters
-// that pinning is skipped and only the mutation math is verified.
-//
-// Idempotency of the annotation-backed original-request lookup (no compounding on
-// webhook reinvocation) is intentionally NOT re-tested here — it requires a second
-// interfering mutating webhook to trigger a real reinvocation and is already covered
-// at the unit level in the admission repo's mutator_test.go.
+// Architecture-agnostic behaviour (cpuRequestToRequestPercent mutation math,
+// ResourceOverride conflict resolution, field precedence) is tested in e2e_test.go.
 
 import (
 	"testing"
@@ -25,16 +17,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
 
-	autoscalingv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/autoscaling/v1"
 	operatorv1 "github.com/openshift/cluster-resource-override-admission-operator/pkg/apis/operator/v1"
 	"github.com/openshift/cluster-resource-override-admission-operator/test/helper"
 )
 
 const s390xArch = "s390x"
 
-// s390xTestImage is the container image used by all IBM Z e2e test pods.
+// s390xTestImage is the container image used by IBM Z e2e test pods.
 // registry.access.redhat.com/ubi9/httpd-24:latest — no auth required, s390x
-// multi-arch manifest confirmed running on s390x ocp cluster worker nodes.
+// multi-arch manifest available on s390x OCP cluster worker nodes.
 const s390xTestImage = "registry.access.redhat.com/ubi9/httpd-24:latest"
 
 func s390xContainer(name string, requirements corev1.ResourceRequirements) corev1.Container {
@@ -51,13 +42,22 @@ func s390xContainer(name string, requirements corev1.ResourceRequirements) corev
 	}
 }
 
-// TestIBMZCPURequestToRequestPercentNoCPULimit covers the base IBM Z scenario: a pod
-// with a CPU request and no CPU limit gets its request scaled by
-// cpuRequestToRequestPercent, since limitCPUToMemoryPercent never runs without a
-// memory limit to derive a CPU limit from, so OverrideCPUWithLimit is a
-// no-op and OverrideCPUWithRequest is the only thing that can act.
+// TestIBMZCPURequestToRequestPercentNoCPULimit verifies that on a real s390x node a
+// pod with a CPU request and no CPU limit has its request scaled by
+// cpuRequestToRequestPercent, and that the original request is preserved via
+// annotation so a later webhook reinvocation cannot compound the scaling.
+//
+// Skipped on clusters without schedulable s390x nodes: the general
+// cpuRequestToRequestPercent mutation math is already covered by
+// TestClusterResourceOverrideAdmissionWithCPURequestToRequestPercent in e2e_test.go.
+// The unique value here is real IBM Z hardware pinning and the annotation assertion.
 func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 	client := helper.NewClient(t, options.config)
+
+	if !helper.HasNodesWithArch(t, client.Kubernetes, s390xArch) {
+		t.Skipf("no schedulable s390x nodes in this cluster — skipping IBM Z real-hardware test " +
+			"(mutation math covered by TestClusterResourceOverrideAdmissionWithCPURequestToRequestPercent)")
+	}
 
 	f := &helper.PreCondition{Client: client.Kubernetes}
 	f.MustHaveAdmissionRegistrationV1(t)
@@ -75,6 +75,7 @@ func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 	defer disposer.Dispose()
 
 	spec := corev1.PodSpec{
+		NodeSelector: map[string]string{"kubernetes.io/arch": s390xArch},
 		Containers: []corev1.Container{
 			s390xContainer("app", corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -84,13 +85,7 @@ func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 		},
 	}
 
-	if helper.HasNodesWithArch(t, client.Kubernetes, s390xArch) {
-		t.Log("s390x nodes detected in this cluster — pinning the test pod to verify real IBM Z scheduling/runtime")
-		spec.NodeSelector = map[string]string{"kubernetes.io/arch": s390xArch}
-	} else {
-		t.Log("no s390x nodes in this cluster — verifying mutation math only (see docs/S390X_E2E_TEST_PLAN.md Tier 2 for real-hardware coverage)")
-	}
-
+	t.Log("pinning test pod to s390x node to verify real IBM Z scheduling/runtime")
 	podGot, podDisposer := helper.NewPod(t, client.Kubernetes, ns.GetName(), spec)
 	defer podDisposer.Dispose()
 
@@ -106,130 +101,4 @@ func TestIBMZCPURequestToRequestPercentNoCPULimit(t *testing.T) {
 	require.Containsf(t, podGot.Annotations,
 		"clusterresourceoverrides.admission.autoscaling.openshift.io/original-cpu-request-app",
 		"expected the original CPU request to be recorded so a later webhook reinvocation can't compound the scaling")
-}
-
-// TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest covers a profile
-// that configures both cpuRequestToLimitPercent and cpuRequestToRequestPercent
-// together. cpuRequestToRequestPercent always runs last and overwrites the result
-// of cpuRequestToLimitPercent, deriving from the pod's original CPU request
-// (preserved via annotation) rather than the intermediate value already written.
-func TestIBMZCPURequestToRequestPercentOverwritesLimitBasedRequest(t *testing.T) {
-	client := helper.NewClient(t, options.config)
-
-	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1(t)
-
-	override := operatorv1.PodResourceOverride{
-		Spec: operatorv1.PodResourceOverrideSpec{
-			CPURequestToLimitPercent:   25, // would set requests.cpu = 25% of the 4000m limit = 1000m
-			CPURequestToRequestPercent: 50, // overwrites with 50% of the *original* 800m request = 400m
-		},
-	}
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
-	helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-
-	ns, disposer := helper.NewNamespace(t, client.Kubernetes, "ibmz-e2e", true)
-	defer disposer.Dispose()
-
-	spec := corev1.PodSpec{
-		Containers: []corev1.Container{
-			s390xContainer("app", corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceCPU: resource.MustParse("800m"),
-				},
-				Limits: corev1.ResourceList{
-					corev1.ResourceCPU: resource.MustParse("4000m"),
-				},
-			}),
-		},
-	}
-
-	podGot, podDisposer := helper.NewPod(t, client.Kubernetes, ns.GetName(), spec)
-	defer podDisposer.Dispose()
-
-	resourceWant := map[string]corev1.ResourceRequirements{
-		"app": {
-			Limits: corev1.ResourceList{
-				corev1.ResourceCPU: resource.MustParse("4000m"),
-			},
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU: resource.MustParse("400m"),
-			},
-		},
-	}
-	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
-}
-
-// TestIBMZResourceOverrideConflictEmitsWarningEventOnLoser covers the namespace-scoped
-// ResourceOverride path for an IBM Z profile: with two ResourceOverride objects in the
-// same namespace both matching the pod (empty podSelector on each), the
-// lexicographically-first name wins, and the losing object gets a Warning
-// "OverrideConflict" event rather than blocking admission.
-func TestIBMZResourceOverrideConflictEmitsWarningEventOnLoser(t *testing.T) {
-	client := helper.NewClient(t, options.config)
-
-	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1(t)
-
-	// Cluster-wide fallback config, deliberately different from either RO below so we
-	// can confirm the RO path is actually what's taking effect.
-	override := operatorv1.PodResourceOverride{
-		Spec: operatorv1.PodResourceOverrideSpec{
-			CPURequestToRequestPercent: 90,
-		},
-	}
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
-	helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-
-	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "ibmz-e2e", true)
-	defer nsDisposer.Dispose()
-
-	const winnerName = "a-ibmz-ro"
-	const loserName = "b-ibmz-ro"
-
-	winnerSpec := autoscalingv1.ResourceOverrideSpec{
-		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
-			CPURequestToRequestPercent: 50,
-		},
-	}
-	_, winnerDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), winnerName, winnerSpec)
-	defer winnerDisposer.Dispose()
-	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), winnerName, helper.IsResourceOverrideValidationPassing)
-
-	loserSpec := autoscalingv1.ResourceOverrideSpec{
-		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
-			CPURequestToRequestPercent: 75,
-		},
-	}
-	_, loserDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), loserName, loserSpec)
-	defer loserDisposer.Dispose()
-	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), loserName, helper.IsResourceOverrideValidationPassing)
-
-	spec := corev1.PodSpec{
-		Containers: []corev1.Container{
-			s390xContainer("app", corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceCPU: resource.MustParse("1000m"),
-				},
-			}),
-		},
-	}
-	podGot, podDisposer := helper.NewPod(t, client.Kubernetes, ns.GetName(), spec)
-	defer podDisposer.Dispose()
-
-	// winnerName sorts before loserName lexicographically, so its 50% ratio applies —
-	// not the loser's 75%, and not the cluster fallback's 90%.
-	resourceWant := map[string]corev1.ResourceRequirements{
-		"app": {
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU: resource.MustParse("500m"),
-			},
-		},
-	}
-	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
-
-	event := helper.WaitForWarningEvent(t, client.Kubernetes, ns.GetName(), "OverrideConflict", loserName)
-	require.Containsf(t, event.Message, winnerName, "expected the conflict event on the loser to name the winning ResourceOverride")
 }
