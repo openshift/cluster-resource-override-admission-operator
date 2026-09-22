@@ -892,11 +892,12 @@ func WaitForClusterOperatorsHealthy(t *testing.T, config *rest.Config) {
 	}
 }
 
-// HasNodesWithArch returns true if the cluster has at least one node labeled
-// kubernetes.io/arch=<arch>. Used to opt in to real-hardware assertions (e.g.
-// nodeSelector pinning) only when the target architecture is actually present,
-// so the same test can run on any dev cluster without hard-failing on
-// amd64-only environments.
+// HasNodesWithArch returns true if the cluster has at least one schedulable node
+// labeled kubernetes.io/arch=<arch>. A node is considered schedulable when it is
+// not cordoned (Spec.Unschedulable=false) and carries no NoSchedule or NoExecute
+// taint. Used to opt in to real-hardware nodeSelector pinning only when a node
+// that can actually run the test pod is present, so the same test runs on any dev
+// cluster without hard-failing on amd64-only environments.
 func HasNodesWithArch(t *testing.T, client kubernetes.Interface, arch string) bool {
 	t.Helper()
 
@@ -905,7 +906,23 @@ func HasNodesWithArch(t *testing.T, client kubernetes.Interface, arch string) bo
 	})
 	require.NoError(t, err)
 
-	return len(nodes.Items) > 0
+	for _, node := range nodes.Items {
+		if node.Spec.Unschedulable {
+			continue
+		}
+		blocked := false
+		for _, taint := range node.Spec.Taints {
+			if taint.Effect == corev1.TaintEffectNoSchedule ||
+				taint.Effect == corev1.TaintEffectNoExecute {
+				blocked = true
+				break
+			}
+		}
+		if !blocked {
+			return true
+		}
+	}
+	return false
 }
 
 // WaitForWarningEvent polls for a Warning event with the given reason recorded
@@ -915,10 +932,13 @@ func WaitForWarningEvent(t *testing.T, client kubernetes.Interface, namespace, r
 	t.Helper()
 
 	var found *corev1.Event
+	var lastErr error
 	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (bool, error) {
 		events, err := client.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			return false, err
+			lastErr = err
+			t.Logf("failed to list events while waiting for reason=%s: %v", reason, err)
+			return false, nil
 		}
 
 		for i := range events.Items {
@@ -932,6 +952,6 @@ func WaitForWarningEvent(t *testing.T, client kubernetes.Interface, namespace, r
 		return false, nil
 	})
 
-	require.NoErrorf(t, err, "timed out waiting for Warning event reason=%s on object=%s in namespace=%s", reason, involvedObjectName, namespace)
+	require.NoErrorf(t, err, "timed out waiting for Warning event reason=%s on object=%s in namespace=%s; last event-list error=%v", reason, involvedObjectName, namespace, lastErr)
 	return found
 }
