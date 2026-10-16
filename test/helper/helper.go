@@ -566,6 +566,44 @@ func EventuallyMustMatchPodMutation(t *testing.T, client kubernetes.Interface, n
 	return
 }
 
+// EventuallyMustMatchPodSpec retries creating a pod with the given full PodSpec
+// until the admission webhook mutates it to match want, or WaitTimeout expires.
+// Probe pods that don't match are deleted before the next attempt. Use this
+// instead of NewPod+MustMatchMemoryAndCPU when a webhook config change may not
+// have propagated to all operand replicas yet.
+func EventuallyMustMatchPodSpec(t *testing.T, client kubernetes.Interface, namespace string, spec corev1.PodSpec, want map[string]corev1.ResourceRequirements) (pod *corev1.Pod, disposer Disposer) {
+	t.Helper()
+
+	err := wait.PollUntilContextTimeout(t.Context(), 10*time.Second, WaitTimeout, true, func(ctx context.Context) (bool, error) {
+		p, err := client.CoreV1().Pods(namespace).Create(ctx, &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{GenerateName: "croe2e-"},
+			Spec:       spec,
+		}, metav1.CreateOptions{})
+		if err != nil {
+			t.Logf("retrying: failed to create probe pod: %v", err)
+			return false, nil
+		}
+
+		if matchesMemoryAndCPU(want, &p.Spec) {
+			pod = p
+			return true, nil
+		}
+
+		t.Logf("pod mutation not yet matching expected values, retrying")
+		if err := client.CoreV1().Pods(namespace).Delete(t.Context(), p.Name, metav1.DeleteOptions{}); err != nil {
+			t.Logf("warning: failed to delete probe pod %s: %v", p.Name, err)
+		}
+		return false, nil
+	})
+
+	require.NoError(t, err, "timed out waiting for pod mutation to match expected values")
+	disposer = func() {
+		err := client.CoreV1().Pods(namespace).Delete(t.Context(), pod.Name, metav1.DeleteOptions{})
+		require.NoError(t, err)
+	}
+	return
+}
+
 func NewLimitRanges(t *testing.T, client kubernetes.Interface, namespace string, spec corev1.LimitRangeSpec) (object *corev1.LimitRange, disposer Disposer) {
 	request := corev1.LimitRange{
 		ObjectMeta: metav1.ObjectMeta{
@@ -890,4 +928,90 @@ func WaitForClusterOperatorsHealthy(t *testing.T, config *rest.Config) {
 	if err != nil {
 		t.Logf("WARNING: timed out waiting for cluster operators to be healthy: %v", err)
 	}
+}
+
+// HasNodesWithArch returns true if the cluster has at least one schedulable node
+// labeled kubernetes.io/arch=<arch>. A node is considered schedulable when it is
+// not cordoned (Spec.Unschedulable=false) and carries no NoSchedule or NoExecute
+// taint. Used to opt in to real-hardware nodeSelector pinning only when a node
+// that can actually run the test pod is present, so the same test runs on any dev
+// cluster without hard-failing on amd64-only environments.
+func HasNodesWithArch(t *testing.T, client kubernetes.Interface, arch string) bool {
+	t.Helper()
+
+	nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("kubernetes.io/arch=%s", arch),
+	})
+	require.NoError(t, err)
+
+	for _, node := range nodes.Items {
+		if node.Spec.Unschedulable {
+			continue
+		}
+		blocked := false
+		for _, taint := range node.Spec.Taints {
+			if taint.Effect == corev1.TaintEffectNoSchedule ||
+				taint.Effect == corev1.TaintEffectNoExecute {
+				blocked = true
+				break
+			}
+		}
+		if !blocked {
+			return true
+		}
+	}
+	return false
+}
+
+// WaitForPodRunningOnNode polls until the named pod reaches Running phase and
+// returns the node it was scheduled to. Fails the test if the pod does not
+// reach Running within WaitTimeout.
+func WaitForPodRunningOnNode(t *testing.T, client kubernetes.Interface, namespace, name string) string {
+	t.Helper()
+
+	var nodeName string
+	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (bool, error) {
+		pod, err := client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if pod.Status.Phase == corev1.PodRunning {
+			nodeName = pod.Spec.NodeName
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoErrorf(t, err, "timed out waiting for pod %s/%s to reach Running phase", namespace, name)
+	return nodeName
+}
+
+// WaitForWarningEvent polls for a Warning event with the given reason recorded
+// against the named object in namespace, and fails the test if none appears
+// before WaitTimeout.
+func WaitForWarningEvent(t *testing.T, client kubernetes.Interface, namespace, reason, involvedObjectName string) *corev1.Event {
+	t.Helper()
+
+	var found *corev1.Event
+	var lastErr error
+	err := wait.PollUntilContextTimeout(context.TODO(), WaitInterval, WaitTimeout, true, func(ctx context.Context) (bool, error) {
+		events, err := client.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			lastErr = err
+			t.Logf("failed to list events while waiting for reason=%s: %v", reason, err)
+			return false, nil
+		}
+
+		for i := range events.Items {
+			event := &events.Items[i]
+			if event.Type == corev1.EventTypeWarning && event.Reason == reason && event.InvolvedObject.Name == involvedObjectName {
+				found = event
+				return true, nil
+			}
+		}
+
+		return false, nil
+	})
+
+	require.NoErrorf(t, err, "timed out waiting for Warning event reason=%s on object=%s in namespace=%s; last event-list error=%v", reason, involvedObjectName, namespace, lastErr)
+	return found
 }
