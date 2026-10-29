@@ -668,6 +668,160 @@ func TestResourceOverrideAdmissionOverridesPod(t *testing.T) {
 	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
 }
 
+// TestResourceOverrideAdmissionWithLimitRange verifies that namespace-scoped
+// ResourceOverrides honor LimitRange maximums, minimums, and default limits.
+func TestResourceOverrideAdmissionWithLimitRange(t *testing.T) {
+	tests := []struct {
+		name           string
+		limitRangeSpec corev1.LimitRangeSpec
+		resourceSpec   autoscalingv1.PodResourceOverrideSpec
+		requirements   corev1.ResourceRequirements
+		resourceWant   map[string]corev1.ResourceRequirements
+	}{
+		{
+			name: "ClampsValuesToLimitRangeMaximum",
+			limitRangeSpec: corev1.LimitRangeSpec{
+				Limits: []corev1.LimitRangeItem{{
+					Type: corev1.LimitTypeContainer,
+					Max: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("1024Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1000m"),
+					},
+				}},
+			},
+			resourceSpec: autoscalingv1.PodResourceOverrideSpec{
+				LimitCPUToMemoryPercent:     200,
+				CPURequestToLimitPercent:    25,
+				MemoryRequestToLimitPercent: 50,
+			},
+			requirements: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("1024Mi"),
+					corev1.ResourceCPU:    resource.MustParse("1000m"),
+				},
+			},
+			resourceWant: map[string]corev1.ResourceRequirements{
+				"test": {
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("1024Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1000m"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("512Mi"),
+						corev1.ResourceCPU:    resource.MustParse("250m"),
+					},
+				},
+			},
+		},
+		{
+			name: "ClampsValuesToLimitRangeMinimum",
+			limitRangeSpec: corev1.LimitRangeSpec{
+				Limits: []corev1.LimitRangeItem{{
+					Type: corev1.LimitTypeContainer,
+					Min: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("768Mi"),
+						corev1.ResourceCPU:    resource.MustParse("500m"),
+					},
+				}},
+			},
+			resourceSpec: autoscalingv1.PodResourceOverrideSpec{
+				CPURequestToLimitPercent:    25,
+				MemoryRequestToLimitPercent: 50,
+			},
+			requirements: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("1024Mi"),
+					corev1.ResourceCPU:    resource.MustParse("1000m"),
+				},
+			},
+			resourceWant: map[string]corev1.ResourceRequirements{
+				"test": {
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("1024Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1000m"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("768Mi"),
+						corev1.ResourceCPU:    resource.MustParse("500m"),
+					},
+				},
+			},
+		},
+		{
+			name: "UsesLimitRangeDefaultsWithoutExplicitLimits",
+			limitRangeSpec: corev1.LimitRangeSpec{
+				Limits: []corev1.LimitRangeItem{{
+					Type: corev1.LimitTypeContainer,
+					Default: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("512Mi"),
+						corev1.ResourceCPU:    resource.MustParse("2000m"),
+					},
+				}},
+			},
+			resourceSpec: autoscalingv1.PodResourceOverrideSpec{
+				LimitCPUToMemoryPercent:     200,
+				CPURequestToLimitPercent:    25,
+				MemoryRequestToLimitPercent: 50,
+			},
+			resourceWant: map[string]corev1.ResourceRequirements{
+				"test": {
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("512Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1000m"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("256Mi"),
+						corev1.ResourceCPU:    resource.MustParse("250m"),
+					},
+				},
+			},
+		},
+	}
+
+	client := helper.NewClient(t, options.config)
+
+	f := &helper.PreCondition{Client: client.Kubernetes}
+	f.MustHaveAdmissionRegistrationV1(t)
+
+	// The ResourceOverride values take precedence, but a CRO is still required to
+	// deploy and configure the admission webhook.
+	croConfig := operatorv1.PodResourceOverrideSpec{
+		LimitCPUToMemoryPercent:     200,
+		CPURequestToLimitPercent:    25,
+		MemoryRequestToLimitPercent: 50,
+	}
+	override := operatorv1.PodResourceOverride{Spec: croConfig}
+
+	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
+	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
+
+	t.Log("waiting for CRO webhook to become available")
+	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+
+	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
+	t.Log("webhook configuration has been set successfully")
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "ro-limitrange-e2e", true)
+			defer nsDisposer.Dispose()
+
+			_, limitRangeDisposer := helper.NewLimitRanges(t, client.Kubernetes, ns.GetName(), test.limitRangeSpec)
+			defer limitRangeDisposer.Dispose()
+
+			roSpec := autoscalingv1.ResourceOverrideSpec{PodResourceOverride: test.resourceSpec}
+			_, roDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "test-ro-limitrange", roSpec)
+			defer roDisposer.Dispose()
+
+			helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "test-ro-limitrange", helper.IsResourceOverrideValidationPassing)
+
+			_, podDisposer := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.GetName(), "test", test.requirements, test.resourceWant)
+			defer podDisposer.Dispose()
+		})
+	}
+}
+
 func TestResourceOverrideAdmissionWithPodSelector(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
