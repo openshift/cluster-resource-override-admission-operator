@@ -668,6 +668,221 @@ func TestResourceOverrideAdmissionOverridesPod(t *testing.T) {
 	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
 }
 
+// TestResourceOverrideAdmissionMultipleOverrides verifies that the
+// lexicographically first ResourceOverride wins when multiple overrides match
+// a pod in the same namespace.
+func TestResourceOverrideAdmissionMultipleOverrides(t *testing.T) {
+	client := helper.NewClient(t, options.config)
+
+	f := &helper.PreCondition{Client: client.Kubernetes}
+	f.MustHaveAdmissionRegistrationV1(t)
+
+	croConfig := operatorv1.PodResourceOverrideSpec{
+		CPURequestToLimitPercent:    10,
+		MemoryRequestToLimitPercent: 10,
+	}
+	override := operatorv1.PodResourceOverride{Spec: croConfig}
+
+	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
+	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
+
+	t.Log("waiting for CRO webhook to become available")
+	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+
+	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
+	t.Log("webhook configuration has been set successfully")
+
+	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "ro-multiple-e2e", true)
+	defer nsDisposer.Dispose()
+
+	requirements := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("1024Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
+		},
+	}
+
+	loserSpec := autoscalingv1.ResourceOverrideSpec{
+		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
+			CPURequestToLimitPercent:    25,
+			MemoryRequestToLimitPercent: 25,
+		},
+	}
+	loserWant := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: requirements.Limits,
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("256Mi"),
+				corev1.ResourceCPU:    resource.MustParse("250m"),
+			},
+		},
+	}
+
+	t.Log("creating the lexicographically later ResourceOverride")
+	_, loserDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "z-loser", loserSpec)
+	defer loserDisposer.Dispose()
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "z-loser", helper.IsResourceOverrideValidationPassing)
+
+	t.Log("verifying the existing ResourceOverride is applied before creating a conflict")
+	_, loserPodDisposer := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.GetName(), "test", requirements, loserWant)
+	defer loserPodDisposer.Dispose()
+
+	winnerSpec := autoscalingv1.ResourceOverrideSpec{
+		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
+			CPURequestToLimitPercent:    75,
+			MemoryRequestToLimitPercent: 75,
+		},
+	}
+	winnerWant := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: requirements.Limits,
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("768Mi"),
+				corev1.ResourceCPU:    resource.MustParse("750m"),
+			},
+		},
+	}
+
+	t.Log("creating the lexicographically first ResourceOverride")
+	_, winnerDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "a-winner", winnerSpec)
+	defer winnerDisposer.Dispose()
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "a-winner", helper.IsResourceOverrideValidationPassing)
+
+	t.Log("verifying the lexicographically first ResourceOverride wins")
+	_, winnerPodDisposer := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.GetName(), "test", requirements, winnerWant)
+	defer winnerPodDisposer.Dispose()
+}
+
+// TestResourceOverrideAdmissionWithDistinctPodSelectors verifies that
+// ResourceOverrides with distinct pod selectors independently mutate their
+// corresponding pod groups, fall back to the CRO when none match, and select
+// the lexicographically first override in a selector and catch-all conflict.
+func TestResourceOverrideAdmissionWithDistinctPodSelectors(t *testing.T) {
+	client := helper.NewClient(t, options.config)
+
+	f := &helper.PreCondition{Client: client.Kubernetes}
+	f.MustHaveAdmissionRegistrationV1(t)
+
+	croConfig := operatorv1.PodResourceOverrideSpec{
+		CPURequestToLimitPercent:    10,
+		MemoryRequestToLimitPercent: 10,
+	}
+	override := operatorv1.PodResourceOverride{Spec: croConfig}
+
+	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
+	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
+
+	t.Log("waiting for CRO webhook to become available")
+	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+
+	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
+	t.Log("webhook configuration has been set successfully")
+
+	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "ro-selectors-e2e", true)
+	defer nsDisposer.Dispose()
+
+	requirements := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("1024Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
+		},
+	}
+	croWant := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: requirements.Limits,
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("102Mi"),
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+			},
+		},
+	}
+
+	frontendSpec := autoscalingv1.ResourceOverrideSpec{
+		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
+			CPURequestToLimitPercent:    25,
+			MemoryRequestToLimitPercent: 50,
+		},
+		PodSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"workload": "frontend"}},
+	}
+	batchSpec := autoscalingv1.ResourceOverrideSpec{
+		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
+			CPURequestToLimitPercent:    75,
+			MemoryRequestToLimitPercent: 75,
+		},
+		PodSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"workload": "batch"}},
+	}
+
+	t.Log("creating ResourceOverrides for frontend and batch pod groups")
+	_, frontendDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "frontend", frontendSpec)
+	defer frontendDisposer.Dispose()
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "frontend", helper.IsResourceOverrideValidationPassing)
+	_, batchDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "batch", batchSpec)
+	defer batchDisposer.Dispose()
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "batch", helper.IsResourceOverrideValidationPassing)
+
+	frontendWant := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: requirements.Limits,
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("512Mi"),
+				corev1.ResourceCPU:    resource.MustParse("250m"),
+			},
+		},
+	}
+	batchWant := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: requirements.Limits,
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("768Mi"),
+				corev1.ResourceCPU:    resource.MustParse("750m"),
+			},
+		},
+	}
+
+	t.Log("verifying the frontend selector applies its ResourceOverride")
+	_, frontendPodDisposer := helper.EventuallyMustMatchPodMutationWithLabels(t, client.Kubernetes, ns.GetName(), "test", requirements, map[string]string{"workload": "frontend"}, frontendWant)
+	defer frontendPodDisposer.Dispose()
+
+	t.Log("verifying the batch selector applies its ResourceOverride")
+	_, batchPodDisposer := helper.EventuallyMustMatchPodMutationWithLabels(t, client.Kubernetes, ns.GetName(), "test", requirements, map[string]string{"workload": "batch"}, batchWant)
+	defer batchPodDisposer.Dispose()
+
+	t.Log("verifying a pod that matches no selector falls back to the CRO")
+	_, fallbackPodDisposer := helper.EventuallyMustMatchPodMutationWithLabels(t, client.Kubernetes, ns.GetName(), "test", requirements, map[string]string{"workload": "database"}, croWant)
+	defer fallbackPodDisposer.Dispose()
+
+	catchAllSpec := autoscalingv1.ResourceOverrideSpec{
+		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
+			CPURequestToLimitPercent:    50,
+			MemoryRequestToLimitPercent: 25,
+		},
+	}
+	catchAllWant := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: requirements.Limits,
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("256Mi"),
+				corev1.ResourceCPU:    resource.MustParse("500m"),
+			},
+		},
+	}
+
+	t.Log("creating a catch-all ResourceOverride")
+	_, catchAllDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "z-catch-all", catchAllSpec)
+	defer catchAllDisposer.Dispose()
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "z-catch-all", helper.IsResourceOverrideValidationPassing)
+
+	t.Log("verifying the lexicographically first selector ResourceOverride wins over the catch-all")
+	_, mixedSelectorPodDisposer := helper.EventuallyMustMatchPodMutationWithLabels(t, client.Kubernetes, ns.GetName(), "test", requirements, map[string]string{"workload": "frontend"}, frontendWant)
+	defer mixedSelectorPodDisposer.Dispose()
+
+	t.Log("verifying the catch-all ResourceOverride applies when no selector matches")
+	_, catchAllPodDisposer := helper.EventuallyMustMatchPodMutationWithLabels(t, client.Kubernetes, ns.GetName(), "test", requirements, map[string]string{"workload": "database"}, catchAllWant)
+	defer catchAllPodDisposer.Dispose()
+}
+
 func TestResourceOverrideAdmissionWithPodSelector(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
