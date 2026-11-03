@@ -1007,3 +1007,144 @@ func TestResourceOverrideAdmissionWithCPURequestToRequestPercent(t *testing.T) {
 
 	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
 }
+
+func TestResourceOverrideMultipleInSameNamespace(t *testing.T) {
+	client := helper.NewClient(t, options.config)
+
+	f := &helper.PreCondition{Client: client.Kubernetes}
+	f.MustHaveAdmissionRegistrationV1(t)
+
+	croConfig := operatorv1.PodResourceOverrideSpec{
+		LimitCPUToMemoryPercent:     200,
+		CPURequestToLimitPercent:    25,
+		MemoryRequestToLimitPercent: 50,
+	}
+	override := operatorv1.PodResourceOverride{
+		Spec: croConfig,
+	}
+
+	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
+	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
+	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
+
+	t.Log("waiting for CRO webhook to become available")
+	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+
+	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
+	t.Log("webhook configuration has been set successfully")
+
+	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "roe2e", true)
+	defer nsDisposer.Dispose()
+
+	roSpecA := autoscalingv1.ResourceOverrideSpec{
+		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
+			CPURequestToLimitPercent:    60,
+			MemoryRequestToLimitPercent: 75,
+		},
+	}
+	roSpecB := autoscalingv1.ResourceOverrideSpec{
+		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
+			CPURequestToLimitPercent:    80,
+			MemoryRequestToLimitPercent: 25,
+		},
+	}
+	roSpecC := autoscalingv1.ResourceOverrideSpec{
+		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
+			CPURequestToLimitPercent:    40,
+			MemoryRequestToLimitPercent: 100,
+		},
+	}
+
+	// aaa is created between bbb and ccc so it's neither the oldest nor the newest,
+	// only sorting by name should make it win
+	t.Log("creating three ResourceOverrides without selectors")
+	_, roDisposerB := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "test-ro-bbb", roSpecB)
+	_, roDisposerA := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "test-ro-aaa", roSpecA)
+	_, roDisposerC := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "test-ro-ccc", roSpecC)
+
+	t.Log("waiting for ResourceOverride validation to pass")
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "test-ro-bbb", helper.IsResourceOverrideValidationPassing)
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "test-ro-aaa", helper.IsResourceOverrideValidationPassing)
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "test-ro-ccc", helper.IsResourceOverrideValidationPassing)
+
+	requirements := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("1024Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
+		},
+	}
+
+	t.Log("creating pod and verifying test-ro-aaa ratios are applied")
+	resourceWantA := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("1024Mi"),
+				corev1.ResourceCPU:    resource.MustParse("1000m"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("768Mi"),
+				corev1.ResourceCPU:    resource.MustParse("600m"),
+			},
+		},
+	}
+
+	_, podDisposer1 := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.GetName(), "test", requirements, resourceWantA)
+	defer podDisposer1.Dispose()
+
+	t.Log("deleting test-ro-aaa and verifying test-ro-bbb ratios are applied")
+	roDisposerA.Dispose()
+
+	resourceWantB := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("1024Mi"),
+				corev1.ResourceCPU:    resource.MustParse("1000m"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("256Mi"),
+				corev1.ResourceCPU:    resource.MustParse("800m"),
+			},
+		},
+	}
+
+	_, podDisposer2 := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.GetName(), "test", requirements, resourceWantB)
+	defer podDisposer2.Dispose()
+
+	t.Log("deleting test-ro-bbb and verifying test-ro-ccc ratios are applied")
+	roDisposerB.Dispose()
+
+	resourceWantC := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("1024Mi"),
+				corev1.ResourceCPU:    resource.MustParse("1000m"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("1024Mi"),
+				corev1.ResourceCPU:    resource.MustParse("400m"),
+			},
+		},
+	}
+
+	_, podDisposer3 := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.GetName(), "test", requirements, resourceWantC)
+	defer podDisposer3.Dispose()
+
+	t.Log("deleting test-ro-ccc and verifying fallback to CRO ratios")
+	roDisposerC.Dispose()
+
+	resourceWantCRO := map[string]corev1.ResourceRequirements{
+		"test": {
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("1024Mi"),
+				corev1.ResourceCPU:    resource.MustParse("2000m"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("512Mi"),
+				corev1.ResourceCPU:    resource.MustParse("500m"),
+			},
+		},
+	}
+
+	_, podDisposer4 := helper.EventuallyMustMatchPodMutation(t, client.Kubernetes, ns.GetName(), "test", requirements, resourceWantCRO)
+	defer podDisposer4.Dispose()
+}
