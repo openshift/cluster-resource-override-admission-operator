@@ -784,11 +784,12 @@ func TestResourceOverrideAdmissionWithLimitRange(t *testing.T) {
 	f.MustHaveAdmissionRegistrationV1(t)
 
 	// The ResourceOverride values take precedence, but a CRO is still required to
-	// deploy and configure the admission webhook.
+	// deploy and configure the admission webhook. Keep the ratios distinct from
+	// every ResourceOverride scenario so the expected pod resources prove that
+	// the webhook selected the ResourceOverride.
 	croConfig := operatorv1.PodResourceOverrideSpec{
-		LimitCPUToMemoryPercent:     200,
-		CPURequestToLimitPercent:    25,
-		MemoryRequestToLimitPercent: 50,
+		CPURequestToLimitPercent:    75,
+		MemoryRequestToLimitPercent: 90,
 	}
 	override := operatorv1.PodResourceOverride{Spec: croConfig}
 
