@@ -521,11 +521,27 @@ func matchesMemoryAndCPU(resourceWant map[string]corev1.ResourceRequirements, sp
 // resources match the expected values, then returns that pod and a disposer.
 // Use this instead of a sleep when the webhook config may not have propagated yet.
 func EventuallyMustMatchPodMutation(t *testing.T, client kubernetes.Interface, namespace, containerName string, requirements corev1.ResourceRequirements, want map[string]corev1.ResourceRequirements) (pod *corev1.Pod, disposer Disposer) {
+	return eventuallyMustMatchPodMutation(t, client, namespace, containerName, requirements, nil, want)
+}
+
+// EventuallyMustMatchPodMutationWithLabels polls by creating labeled throwaway
+// pods until one's resources match the expected values, then returns that pod
+// and a disposer. Use this when pod labels select a ResourceOverride.
+func EventuallyMustMatchPodMutationWithLabels(t *testing.T, client kubernetes.Interface, namespace, containerName string, requirements corev1.ResourceRequirements, labels map[string]string, want map[string]corev1.ResourceRequirements) (pod *corev1.Pod, disposer Disposer) {
+	return eventuallyMustMatchPodMutation(t, client, namespace, containerName, requirements, labels, want)
+}
+
+// eventuallyMustMatchPodMutation creates probe pods until the admission
+// webhook produces the expected resources for the supplied labels.
+func eventuallyMustMatchPodMutation(t *testing.T, client kubernetes.Interface, namespace, containerName string, requirements corev1.ResourceRequirements, labels map[string]string, want map[string]corev1.ResourceRequirements) (pod *corev1.Pod, disposer Disposer) {
 	t.Helper()
 
 	err := wait.PollUntilContextTimeout(t.Context(), 10*time.Second, WaitTimeout, true, func(ctx context.Context) (bool, error) {
 		p, err := client.CoreV1().Pods(namespace).Create(ctx, &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{GenerateName: "croe2e-"},
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "croe2e-",
+				Labels:       labels,
+			},
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{{
 					Name:      containerName,
