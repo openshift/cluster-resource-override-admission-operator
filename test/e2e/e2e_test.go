@@ -869,13 +869,16 @@ func TestResourceOverrideAdmissionWithDistinctPodSelectors(t *testing.T) {
 		},
 	}
 
+	// The catch-all sorts before frontend, so the overlapping pod's resources
+	// change only once the webhook sees and selects the catch-all.
+	const catchAllName = "a-catch-all"
 	t.Log("creating a catch-all ResourceOverride")
-	_, catchAllDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), "z-catch-all", catchAllSpec)
+	_, catchAllDisposer := helper.CreateResourceOverride(t, client.Operator, ns.GetName(), catchAllName, catchAllSpec)
 	defer catchAllDisposer.Dispose()
-	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), "z-catch-all", helper.IsResourceOverrideValidationPassing)
+	helper.WaitForResourceOverrideCondition(t, client.Operator, ns.GetName(), catchAllName, helper.IsResourceOverrideValidationPassing)
 
-	t.Log("verifying the lexicographically first selector ResourceOverride wins over the catch-all")
-	_, mixedSelectorPodDisposer := helper.EventuallyMustMatchPodMutationWithLabels(t, client.Kubernetes, ns.GetName(), "test", requirements, map[string]string{"workload": "frontend"}, frontendWant)
+	t.Log("verifying the catch-all ResourceOverride wins over the frontend ResourceOverride by name")
+	_, mixedSelectorPodDisposer := helper.EventuallyMustMatchPodMutationWithLabels(t, client.Kubernetes, ns.GetName(), "test", requirements, map[string]string{"workload": "frontend"}, catchAllWant)
 	defer mixedSelectorPodDisposer.Dispose()
 
 	t.Log("verifying the catch-all ResourceOverride applies when no selector matches")
