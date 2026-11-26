@@ -680,6 +680,9 @@ func TestResourceOverrideAdmissionWithLimitRange(t *testing.T) {
 	}{
 		{
 			name: "ClampsValuesToLimitRangeMaximum",
+			// At 200%, the 1 GiB memory limit yields a 2000m CPU limit,
+			// which the LimitRange caps at 1000m. The CPU request is 25% of
+			// that cap (250m), and the memory request is 50% of 1024Mi (512Mi).
 			limitRangeSpec: corev1.LimitRangeSpec{
 				Limits: []corev1.LimitRangeItem{{
 					Type: corev1.LimitTypeContainer,
@@ -715,6 +718,9 @@ func TestResourceOverrideAdmissionWithLimitRange(t *testing.T) {
 		},
 		{
 			name: "ClampsValuesToLimitRangeMinimum",
+			// The RO requests 25% of 1000m CPU (250m) and 50% of 1024Mi
+			// memory (512Mi). The LimitRange raises these to 500m and 768Mi
+			// respectively. The pod's limits stay the same.
 			limitRangeSpec: corev1.LimitRangeSpec{
 				Limits: []corev1.LimitRangeItem{{
 					Type: corev1.LimitTypeContainer,
@@ -749,6 +755,9 @@ func TestResourceOverrideAdmissionWithLimitRange(t *testing.T) {
 		},
 		{
 			name: "UsesLimitRangeDefaultsWithoutExplicitLimits",
+			// With no pod limits, the LimitRange supplies 512Mi and 2000m.
+			// The 200% memory-to-CPU ratio replaces the CPU limit with 1000m.
+			// The requests are then 25% of 1000m (250m) and 50% of 512Mi (256Mi).
 			limitRangeSpec: corev1.LimitRangeSpec{
 				Limits: []corev1.LimitRangeItem{{
 					Type: corev1.LimitTypeContainer,
