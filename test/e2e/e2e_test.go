@@ -599,8 +599,16 @@ func TestClusterResourceOverrideAdmissionWithCPURequestToRequestPercent(t *testi
 	helper.MustMatchMemoryAndCPU(t, resourceWant, &podGot.Spec)
 }
 
-func TestResourceOverrideAdmissionOverridesPod(t *testing.T) {
-	client := helper.NewClient(t, options.config)
+// setupCROWithOptInNamespace does the setup shared by the ResourceOverride admission tests:
+// it checks admission registration v1 support, applies the standard CRO config
+// (LimitCPUToMemoryPercent 200, CPURequestToLimitPercent 25, MemoryRequestToLimitPercent 50),
+// waits for the webhook to become available, and creates an opted-in "roe2e" namespace.
+//
+// Cleanup is registered with t.Cleanup, which runs after the calling test's deferred calls.
+// Callers should keep using defer for their own resources so the teardown order stays:
+// test resources, then the namespace, then the CRO.
+func setupCROWithOptInNamespace(t *testing.T, client *helper.Client) *corev1.Namespace {
+	t.Helper()
 
 	f := &helper.PreCondition{Client: client.Kubernetes}
 	f.MustHaveAdmissionRegistrationV1(t)
@@ -616,16 +624,26 @@ func TestResourceOverrideAdmissionOverridesPod(t *testing.T) {
 
 	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
 	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
+	croName := current.GetName()
+	// t.Cleanup runs LIFO: registered first so the CRO is removed last, after the namespace.
+	t.Cleanup(func() { helper.RemoveAdmissionWebhook(t, client.Operator, croName) })
 
 	t.Log("waiting for CRO webhook to become available")
-	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
+	helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
 
 	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
 	t.Log("webhook configuration has been set successfully")
 
 	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "roe2e", true)
-	defer nsDisposer.Dispose()
+	t.Cleanup(nsDisposer.Dispose)
+
+	return ns
+}
+
+func TestResourceOverrideAdmissionOverridesPod(t *testing.T) {
+	client := helper.NewClient(t, options.config)
+
+	ns := setupCROWithOptInNamespace(t, client)
 
 	roSpec := autoscalingv1.ResourceOverrideSpec{
 		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
@@ -835,30 +853,7 @@ func TestResourceOverrideAdmissionWithLimitRange(t *testing.T) {
 func TestResourceOverrideAdmissionWithPodSelector(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
-	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1(t)
-
-	croConfig := operatorv1.PodResourceOverrideSpec{
-		LimitCPUToMemoryPercent:     200,
-		CPURequestToLimitPercent:    25,
-		MemoryRequestToLimitPercent: 50,
-	}
-	override := operatorv1.PodResourceOverride{
-		Spec: croConfig,
-	}
-
-	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
-
-	t.Log("waiting for CRO webhook to become available")
-	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-
-	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
-	t.Log("webhook configuration has been set successfully")
-
-	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "roe2e", true)
-	defer nsDisposer.Dispose()
+	ns := setupCROWithOptInNamespace(t, client)
 
 	roSpec := autoscalingv1.ResourceOverrideSpec{
 		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
@@ -927,30 +922,7 @@ func TestResourceOverrideAdmissionWithPodSelector(t *testing.T) {
 func TestResourceOverrideFallbackToCRO(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
-	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1(t)
-
-	croConfig := operatorv1.PodResourceOverrideSpec{
-		LimitCPUToMemoryPercent:     200,
-		CPURequestToLimitPercent:    25,
-		MemoryRequestToLimitPercent: 50,
-	}
-	override := operatorv1.PodResourceOverride{
-		Spec: croConfig,
-	}
-
-	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
-
-	t.Log("waiting for CRO webhook to become available")
-	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-
-	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
-	t.Log("webhook configuration has been set successfully")
-
-	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "roe2e", true)
-	defer nsDisposer.Dispose()
+	ns := setupCROWithOptInNamespace(t, client)
 
 	roSpec := autoscalingv1.ResourceOverrideSpec{
 		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
@@ -1016,30 +988,7 @@ func TestResourceOverrideFallbackToCRO(t *testing.T) {
 func TestResourceOverrideConfigurationChange(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
-	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1(t)
-
-	croConfig := operatorv1.PodResourceOverrideSpec{
-		LimitCPUToMemoryPercent:     200,
-		CPURequestToLimitPercent:    25,
-		MemoryRequestToLimitPercent: 50,
-	}
-	override := operatorv1.PodResourceOverride{
-		Spec: croConfig,
-	}
-
-	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
-
-	t.Log("waiting for CRO webhook to become available")
-	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-
-	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
-	t.Log("webhook configuration has been set successfully")
-
-	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "roe2e", true)
-	defer nsDisposer.Dispose()
+	ns := setupCROWithOptInNamespace(t, client)
 
 	roSpec := autoscalingv1.ResourceOverrideSpec{
 		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
@@ -1108,28 +1057,7 @@ func TestResourceOverrideConfigurationChange(t *testing.T) {
 func TestResourceOverrideAdmissionWithCPURequestToRequestPercent(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
-	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1(t)
-
-	croConfig := operatorv1.PodResourceOverrideSpec{
-		MemoryRequestToLimitPercent: 50,
-	}
-	override := operatorv1.PodResourceOverride{
-		Spec: croConfig,
-	}
-
-	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
-
-	t.Log("waiting for CRO webhook to become available")
-	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-
-	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
-	t.Log("webhook configuration has been set successfully")
-
-	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "roe2e", true)
-	defer nsDisposer.Dispose()
+	ns := setupCROWithOptInNamespace(t, client)
 
 	roSpec := autoscalingv1.ResourceOverrideSpec{
 		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
@@ -1175,30 +1103,7 @@ func TestResourceOverrideAdmissionWithCPURequestToRequestPercent(t *testing.T) {
 func TestResourceOverrideMultipleInSameNamespace(t *testing.T) {
 	client := helper.NewClient(t, options.config)
 
-	f := &helper.PreCondition{Client: client.Kubernetes}
-	f.MustHaveAdmissionRegistrationV1(t)
-
-	croConfig := operatorv1.PodResourceOverrideSpec{
-		LimitCPUToMemoryPercent:     200,
-		CPURequestToLimitPercent:    25,
-		MemoryRequestToLimitPercent: 50,
-	}
-	override := operatorv1.PodResourceOverride{
-		Spec: croConfig,
-	}
-
-	t.Logf("setting CRO webhook configuration - %s", croConfig.String())
-	current, changed := helper.EnsureAdmissionWebhook(t, client.Operator, "cluster", override, nil)
-	defer helper.RemoveAdmissionWebhook(t, client.Operator, current.GetName())
-
-	t.Log("waiting for CRO webhook to become available")
-	current = helper.Wait(t, client.Operator, "cluster", helper.GetAvailableConditionFunc(current, changed))
-
-	f.MustHaveClusterResourceOverrideAdmissionConfiguration(t)
-	t.Log("webhook configuration has been set successfully")
-
-	ns, nsDisposer := helper.NewNamespace(t, client.Kubernetes, "roe2e", true)
-	defer nsDisposer.Dispose()
+	ns := setupCROWithOptInNamespace(t, client)
 
 	roSpecA := autoscalingv1.ResourceOverrideSpec{
 		PodResourceOverride: autoscalingv1.PodResourceOverrideSpec{
